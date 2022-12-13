@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SseEmitter</title>
+    <script src="https://cdn.bootcss.com/jquery/3.4.0/jquery.min.js"></script>
+    <script src="https://cdn.bootcss.com/socket.io/2.2.0/socket.io.js"></script>
+    <!-- 引入vue -->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.1.8/vue.min.js"></script>
+
+
+    <!-- 引入http-vue-loader -->
+    <script src="https://unpkg.com/http-vue-loader"></script>
+    <!-- 这里使用了element ui框架 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+</head>
+<body>
+<div>
+    <table id="table" border="1px solid #ccc" cellspacing="0" cellpadding="0">
+        <thead>
+        <tr>
+            <th>编号</th>
+            <th>现在股价</th>
+            <th>涨跌率</th>
+            <th>涨跌额</th>
+            <th>成交量--总手（VOL）/成交量</th>
+            <th>成交额</th>
+            <th>振幅</th>
+            <th>换手率</th>
+            <th>市盈率(动态)</th>
+            <th>量比</th>
+            <th>5分钟涨跌幅</th>
+            <th>股票代码</th>
+            <th>市场</th>
+            <th>股票名称</th>
+            <th>今日最高</th>
+            <th>今日最低</th>
+            <th>今开</th>
+            <th>昨收</th>
+            <th>比值一</th>
+            <th>比值二</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-for="(info,index) in infoList">
+            <td>{{index+1}}</td> <!--编号-->
+            <td>{{info['f2']}}</td> <!--现在股价	-->
+            <td>{{info['f3']}}</td> <!--涨跌率	-->
+            <td>{{info['f4']}}</td> <!--涨跌额	-->
+            <td>{{info['f5']}}</td> <!--成交量--总手（VOL）/成交量	-->
+            <td>{{info['f6']}}</td> <!--成交额	-->
+            <td>{{info['f7']}}</td> <!--振幅	-->
+            <td>{{info['f8']}}</td> <!--换手率	-->
+            <td>{{info['f9']}}</td> <!--市盈率(动态)	-->
+            <td>{{info['f10']}}</td> <!--量比	-->
+            <td>{{info['f11']}}</td> <!--5分钟涨跌幅	-->
+            <td>{{info['f12']}}</td> <!--股票代码	-->
+            <td>{{info['f13']}}</td> <!--市场-->
+            <td>{{info['f14']}}</td> <!--股票名称	-->
+            <td>{{info['f15']}}</td> <!--今日最高	-->
+            <td>{{info['f16']}}</td> <!--今日最低	-->
+            <td>{{info['f17'] }}</td> <!--今开	-->
+            <td>{{info['f18']}}</td> <!--昨收-->
+
+            <td></td> <!--昨收-->
+            <td></td> <!--昨收-->
+        </tr>
+        <tr>
+
+        </tr>
+        </tbody>
+
+
+    </table>
+</div>
+
+
+</body>
+
+<script>
+    Vue.use(httpVueLoader)
+    new Vue(
+        {
+            el: '#table',
+            data: {
+                infoList: []
+            },
+            mounted() {
+                this.init();
+            },
+            methods: {
+
+                init: function () {
+                    var that = this;
+                    console.log("================================")
+                    var ws = new WebSocket('ws://localhost:8089/stock');
+                    // 获取连接状态
+                    console.log('ws连接状态：' + ws.readyState);
+
+                    //监听是否连接成功
+                    ws.onopen = function () {
+                        console.log('ws连接状态：' + ws.readyState);
+                        this.limitConnect = 0;
+                        //连接成功则发送一个数据
+                        ws.send('我们建立连接啦');
+                    }
+
+                    // 接听服务器发回的信息并处理展示
+                    ws.onmessage = function (data) {
+                        console.log('接收到来自服务器的消息：');
+                        console.log(data.data, "==");
+                        //this.noticeInfo = jQuery.parseJSON(data.data).noticeInfo;
+
+
+                        that.infoList = jQuery.parseJSON(data.data).noticeInfo;
+
+
+                        //完成通信后关闭WebSocket连接
+                        //ws.close();
+                    }
+                }
+
+            }
+        })
+
+
+    // var limitConnect = 0;
+    // init();
+    //
+    // function init() {
+    //     var ws = new WebSocket('ws://localhost:8089/stock');
+    //     // 获取连接状态
+    //     console.log('ws连接状态：' + ws.readyState);
+    //
+    //     //监听是否连接成功
+    //     ws.onopen = function () {
+    //         console.log('ws连接状态：' + ws.readyState);
+    //         limitConnect = 0;
+    //         //连接成功则发送一个数据
+    //         ws.send('我们建立连接啦');
+    //     }
+    //
+    //     // 接听服务器发回的信息并处理展示
+    //     ws.onmessage = function (data) {
+    //         console.log('接收到来自服务器的消息：');
+    //         console.log(data.data, "==");
+    //
+    //
+    //         console.log(jQuery.parseJSON(data.data));
+    //         console.log(jQuery.parseJSON(data.data).noticeInfo[0]["f1"]);
+    //
+    //         //完成通信后关闭WebSocket连接
+    //         // ws.close();
+    //     }
+    //
+    //
+    // }
+
+
+    // function init() {
+    //     var ws = new WebSocket('ws://localhost:8089/stock');
+    //     // 获取连接状态
+    //     console.log('ws连接状态：' + ws.readyState);
+    //
+    //     //监听是否连接成功
+    //     ws.onopen = function () {
+    //         console.log('ws连接状态：' + ws.readyState);
+    //         limitConnect = 0;
+    //         //连接成功则发送一个数据
+    //         ws.send('我们建立连接啦');
+    //     }
+    //
+    //     // 接听服务器发回的信息并处理展示
+    //     ws.onmessage = function (data) {
+    //         console.log('接收到来自服务器的消息：');
+    //         console.log(data);
+    //         //完成通信后关闭WebSocket连接
+    //         // ws.close();
+    //     }
+    //
+    //     ws.on
+    // }
+
+
+</script>
+<style>
+
+</style>
+</html>
