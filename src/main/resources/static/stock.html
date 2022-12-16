@@ -20,33 +20,27 @@
     <table id="table" border="1px solid #ccc" cellspacing="0" cellpadding="0">
         <thead>
         <tr>
-            <th>编号</th>
-            <th>现在股价</th>
-            <th>涨跌率</th>
-            <th>涨跌额</th>
-            <th>成交量--总手（VOL）/成交量</th>
-            <th>成交额</th>
-            <th>振幅</th>
-            <th>换手率</th>
-            <th>市盈率(动态)</th>
-            <th>量比</th>
-            <th>5分钟涨跌幅</th>
-            <th>股票代码</th>
-            <th>市场</th>
+            <th>股票ID</th>
             <th>股票名称</th>
-            <th>今日最高</th>
-            <th>今日最低</th>
-            <th>今开</th>
-            <th>昨收</th>
-            <th>比值一</th>
-            <th>比值二</th>
+            <th>比值1 今日竞价  > 昨日分时最大*0.5    1 大于 0 等于  -1 小于</th>
+            <th>比值2 今日成交量 / 365天最大成交量>0.5</th>
+            <th>昨日竞价金额</th>
+            <th>今日竞价金额</th>
+            <th>昨日封单大小</th>
+            <th>昨日分时最大量</th>
+            <th>昨日总成交量</th>
+            <th>今天为成交量</th>
+            <th>今天第一分钟成交量</th>
+            <th>竞价十分钟的平均每一分钟交易量</th>
+            <th>过去五天平均每一分钟交易量</th>
+            <th>前日交易量</th>
         </tr>
         </thead>
         <tbody>
         <tr v-for="(info,index) in infoList">
             <td>{{index+1}}</td> <!--编号-->
-            <td>{{info['f2']}}</td> <!--现在股价	-->
-            <td>{{info['f3']}}</td> <!--涨跌率	-->
+            <td>{{info['stockId']}}</td> <!--现在股价	-->
+            <td>{{info['stockName']}}</td> <!--涨跌率	-->
             <td>{{info['f4']}}</td> <!--涨跌额	-->
             <td>{{info['f5']}}</td> <!--成交量--总手（VOL）/成交量	-->
             <td>{{info['f6']}}</td> <!--成交额	-->
@@ -58,10 +52,6 @@
             <td>{{info['f12']}}</td> <!--股票代码	-->
             <td>{{info['f13']}}</td> <!--市场-->
             <td>{{info['f14']}}</td> <!--股票名称	-->
-            <td>{{info['f15']}}</td> <!--今日最高	-->
-            <td>{{info['f16']}}</td> <!--今日最低	-->
-            <td>{{info['f17'] }}</td> <!--今开	-->
-            <td>{{info['f18']}}</td> <!--昨收-->
 
             <td></td> <!--昨收-->
             <td></td> <!--昨收-->

@@ -2,6 +2,7 @@ package com.junbaobao.stock.controller;
 
 import com.alibaba.fastjson.JSONArray;
 import com.junbaobao.stock.entity.NoticeWebsocketResp;
+import com.junbaobao.stock.entity.StockInfo;
 import com.junbaobao.stock.service.StockService1;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,10 +33,7 @@ public class indexController {
         //noticeWebsocket.zhangtingban();
 
         List<String> stockList = noticeWebsocket.getOptional(cookie);
-        for (String stockId : stockList){
-            JSONArray stock = noticeWebsocket.getStockInfo(stockId);
-        }
+        List<StockInfo> stockInfo = noticeWebsocket.getStockInfo(stockList);
     }
-
 
 }
