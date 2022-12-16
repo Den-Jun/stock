@@ -6,9 +6,11 @@ import com.junbaobao.stock.service.StockService1;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
+import java.util.List;
 
 /**
  * @Classname indexController
@@ -25,9 +27,14 @@ public class indexController {
 
 
     @GetMapping("/a")
-    public void getStock() {
-        JSONArray stock = noticeWebsocket.getStockInfo("002362", "汉王科技", "1");
+    public void getStock(@RequestParam("cookie")String cookie) {
+        //JSONArray stock = noticeWebsocket.getStockInfo("002362", "汉王科技", "1");
         //noticeWebsocket.zhangtingban();
+
+        List<String> stockList = noticeWebsocket.getOptional(cookie);
+        for (String stockId : stockList){
+            JSONArray stock = noticeWebsocket.getStockInfo(stockId);
+        }
     }
 
 

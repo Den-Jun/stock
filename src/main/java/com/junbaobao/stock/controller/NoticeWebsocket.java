@@ -139,7 +139,7 @@ public class NoticeWebsocket {
      *
      * @return
      */
-    public JSONArray getStockInfo(String stockId, String stockName, String m) {
+    public JSONArray getStockInfo(String stockId) {
         //这里判断当前股票属于那个板块
         int secId = 0;
         if (stockId.startsWith("6")) {
@@ -164,13 +164,13 @@ public class NoticeWebsocket {
         }));
 
 
-
         //获取以往的走势
         String pastUrl = "https://push2his.eastmoney.com/api/qt/stock/kline/get?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&beg=0&end=20500101&ut=fa5fd1943c7b386f172d6893dbfba10b&rtntype=6&secid=" + secId + "." + stockId + "&klt=101&fqt=1";
 
         String body1 = HttpRequest.get(pastUrl).execute().body();
         JSONObject pastJsonObject = JSON.parseObject(body1);
         JSONObject pastData1 = pastJsonObject.getJSONObject("data");
+        String stockName = data.getString("name");
         JSONArray klinesList = pastData1.getJSONArray("klines");
 
         //取365天的数据
@@ -240,12 +240,11 @@ public class NoticeWebsocket {
         Boolean bizhi2 = thisBiddingVolume / Integer.parseInt(maxiTurnover.split(",")[5]) > 0.05;
 
 
-
         //今日竞价  > 昨日分时最大*0.5    1 大于 0 等于  -1 小于
         int flag = thisBidding.compareTo(yesterdayTurnover.multiply(new BigDecimal(0.5)));
 
         System.out.println("比值1：今日竞价  > 昨日分时最大*0.5    1 大于 0 等于  -1 小于");
-        System.out.println("序号：" + m + " 股票ID: " + stockId + " 股票名称: " + stockName + " 比值1条件结果：" + flag + "比值数是:" + yesterdayTurnover.divide(thisBidding, BigDecimal.ROUND_CEILING));
+        System.out.println(" 股票ID: " + stockId + " 股票名称: " + stockName + " 比值1条件结果：" + flag + "比值数是:" + yesterdayTurnover.divide(thisBidding, BigDecimal.ROUND_CEILING));
 
 //        System.out.println(yesterdayTurnover.divide(thisBidding, BigDecimal.ROUND_CEILING).multiply(new BigDecimal(100)));
 
@@ -276,7 +275,7 @@ public class NoticeWebsocket {
             String stockId = jsonObject1.getString("c");
             String stockName = jsonObject1.getString("n");
             String m = jsonObject1.getString("m");
-            getStockInfo(stockId, stockName, m);
+            getStockInfo(stockId);
         }
 
     }
@@ -314,4 +313,30 @@ public class NoticeWebsocket {
         return flag;
     }
 
+
+    /**
+     * 获取user自选
+     *
+     * @param cookie 登录cookie
+     */
+    public List<String> getOptional(String cookie) {
+        List<String> list = new ArrayList<String>();
+        //同花顺api _时间搓
+        String url = "https://t.10jqka.com.cn/newcircle/group/getSelfStockWithMarket/?_=1670982946607";
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Cookie", cookie);
+
+        String body = HttpRequest.get(url).addHeaders(headers).execute().body();
+        JSONObject jsonObject = JSON.parseObject(body);
+        JSONArray resultList = jsonObject.getJSONArray("result");
+
+        for (int i = 0; i < resultList.size(); i++) {
+            JSONObject jsonObject1 = resultList.getJSONObject(i);
+
+            list.add(jsonObject1.getString("code"));
+        }
+        //只返回stock Code
+        return list;
+
+    }
 }
