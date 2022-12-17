@@ -11,7 +11,7 @@ import lombok.Data;
 @Data
 public class StockInfo {
 
-   private String stockId;
+    private String stockId;
 
     private String stockName;
 
@@ -24,8 +24,12 @@ public class StockInfo {
     /**
      * 比值2 今日成交量 / 365天最大成交量>0.5
      */
-    private  String ratioTwo;
+    private String ratioTwo;
 
+    /**
+     * 比值数 昨日最大的成交额 /今日竞价
+     */
+    private String ratioNumber;
 
     /**
      * 昨日竞价金额

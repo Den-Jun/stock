@@ -52,7 +52,6 @@ public class NoticeWebsocket {
 
     private String userId = "junbaobao";
 
-    private Map<String ,List<StockInfo>> mapStockInfoList = new HashMap<String ,List<StockInfo>>();
 
     @OnOpen
     public void onOpen(Session session) {
@@ -71,11 +70,9 @@ public class NoticeWebsocket {
 //        JSONArray stock = getStock();
 //        NoticeWebsocketResp noticeWebsocketResp = new NoticeWebsocketResp();
 //        noticeWebsocketResp.setNoticeInfo(stock);
+        //当前登录的cookie
         List<String> stockList = getOptional("Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1643185552;%20user_status=0;%20log=;%20user=MDpteF81NTgzMjk3Mzc6Ok5vbmU6NTAwOjU2ODMyOTczNzo3LDExMTExMTExMTExLDQwOzQ0LDExLDQwOzYsMSw0MDs1LDEsNDA7MSwxMDEsNDA7MiwxLDQwOzMsMSw0MDs1LDEsNDA7OCwwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMSw0MDsxMDIsMSw0MDoxNjo6OjU1ODMyOTczNzoxNjcxMTgxNTgwOjo6MTYwODYwMzAwMDoyNjc4NDAwOjA6MTdkMGEwMTkwMDgxYTc1NDA2Yjk2ZWVmMGY5OGRhNWM4OmRlZmF1bHRfNDow;%20userid=558329737;%20u_name=mx_558329737;%20escapename=mx_558329737;%20ticket=59e4205097dfcb67bdf364a689efd251;%20utk=12d08dfa5a06aae77d3950ac43e525bc;%20v=AwhK503p_7fMzRMzR7E195ZC2X0fsWy7ThdAP8K5VAN2naajasE8S54lEMwR");
         List<StockInfo> stockInfo = getStockInfo(stockList);
-        if (ObjectUtils.isEmpty(stockInfo)){
-
-        }
         NoticeWebsocketResp noticeWebsocketResp = new NoticeWebsocketResp();
         noticeWebsocketResp.setNoticeInfo(stockInfo);
         sendMessage(noticeWebsocketResp);
@@ -111,16 +108,19 @@ public class NoticeWebsocket {
     }
 
 
+    @OnMessage
     public void onMsg(Session session, String message) throws InterruptedException {
         while (true) {
-            JSONArray stock = getStock();
-            if (ObjectUtils.isEmpty(stock)) {
+            //当前登录的cookie
+            List<String> stockList = getOptional("Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1643185552;%20user_status=0;%20log=;%20user=MDpteF81NTgzMjk3Mzc6Ok5vbmU6NTAwOjU2ODMyOTczNzo3LDExMTExMTExMTExLDQwOzQ0LDExLDQwOzYsMSw0MDs1LDEsNDA7MSwxMDEsNDA7MiwxLDQwOzMsMSw0MDs1LDEsNDA7OCwwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMSw0MDsxMDIsMSw0MDoxNjo6OjU1ODMyOTczNzoxNjcxMTgxNTgwOjo6MTYwODYwMzAwMDoyNjc4NDAwOjA6MTdkMGEwMTkwMDgxYTc1NDA2Yjk2ZWVmMGY5OGRhNWM4OmRlZmF1bHRfNDow;%20userid=558329737;%20u_name=mx_558329737;%20escapename=mx_558329737;%20ticket=59e4205097dfcb67bdf364a689efd251;%20utk=12d08dfa5a06aae77d3950ac43e525bc;%20v=AwhK503p_7fMzRMzR7E195ZC2X0fsWy7ThdAP8K5VAN2naajasE8S54lEMwR");
+            List<StockInfo> stockInfo = getStockInfo(stockList);
+            if (ObjectUtils.isEmpty(stockInfo)) {
                 return;
             }
             //这里休眠是2S 是因为页面刷新的太快了
             Thread.sleep(2000);
             NoticeWebsocketResp noticeWebsocketResp = new NoticeWebsocketResp();
-            noticeWebsocketResp.setNoticeInfo(stock);
+            noticeWebsocketResp.setNoticeInfo(stockInfo);
             sendMessage(noticeWebsocketResp);
         }
 
@@ -130,6 +130,7 @@ public class NoticeWebsocket {
      * 根据页数获取所有股票list
      */
     public JSONArray getStock() {
+
         String url = "https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=500&po=1&np=1&ut=bd1d9ddb04089700cf9c27f6f7426281&fltt=2&invt=2&wbp2u=|0|0|0|web&fid=f3&fs=m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048&fields=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f12,f13,f14,f15,f16,f17,f18,f20,f21,f23,f24,f25,f22,f11,f62,f128,f136,f115,f152&_=1670309547456";
 
         String body = HttpRequest.get(url).execute().body();
@@ -158,12 +159,17 @@ public class NoticeWebsocket {
                 if (stockId.startsWith("6")) {
                     secId = 1;
                 }
-
                 Map<String, String> map = new HashMap<String, String>();
+
+//                //获取实时数据
+//                String thisDateUrl = "http://16.push2.eastmoney.com/api/qt/stock/details/sse?fields1=f1,f2,f3,f4&fields2=f51,f52,f53,f54,f55&mpi=2000&ut=bd1d9ddb04089700cf9c27f6f7426281&fltt=2&pos=-0&secid=" + secId + "." + stockId;
+//                String thisDate = HttpRequest.get(thisDateUrl).execute().body();
+//                JSONObject thisDateJsonObject = JSON.parseObject(thisDate);
+//                JSONObject thisDataJSONObject = thisDateJsonObject.getJSONObject("data");
+
+
                 //获取走势  可以取都是天的 最多5天
-                String thisUrl = "https://push2his.eastmoney.com/api/qt/stock/trends2/get?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58&ut=fa5fd1943c7b386f172d6893dbfba10b&secid=" + secId + "." + stockId + "&ndays=2&iscr=1&iscca=0";
-
-
+                String thisUrl = "https://push2his.eastmoney.com/api/qt/stock/trends2/get?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f20&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f20&ut=fa5fd1943c7b386f172d6893dbfba10b&secid=" + secId + "." + stockId + "&ndays=2&iscr=1&iscca=0";
                 String body = HttpRequest.get(thisUrl).execute().body();
                 JSONObject jsonObject = JSON.parseObject(body);
                 JSONObject data = jsonObject.getJSONObject("data");
@@ -210,7 +216,6 @@ public class NoticeWebsocket {
 
 
                 //Turnover
-
                 int index = 0;
                 //昨日最大的成交额
                 BigDecimal yesterdayTurnover = null;
@@ -219,6 +224,11 @@ public class NoticeWebsocket {
                 //今日竞价量
                 Integer thisBiddingVolume = null;
 
+                //昨日竞价金额
+                BigDecimal lastBiddingPrice = null;
+
+                //昨日竞价金额
+                BigDecimal lastTimeMax = null;
                 //循环今日数据
                 for (String thisData : thisMap.keySet()) {
                     List<Object> list = thisMap.get(thisData);
@@ -228,15 +238,21 @@ public class NoticeWebsocket {
                         String date = list.get(0).toString();
                         thisBidding = new BigDecimal(date.split(",")[6]);
                         thisBiddingVolume = Integer.parseInt(date.split(",")[5]);
-                    } else {
+
+                    } else if (index == 1) {
                         //昨日
                         //第一个循环位昨日的竞价 获取昨日最大额  根据最大成交额排序
                         List<Object> yesterdayDateList = list.stream().sorted(Comparator.comparing(sort -> {
                             return Double.parseDouble(sort.toString().split(",")[6]);
                         }).reversed()).collect(Collectors.toList());
-
                         String s = yesterdayDateList.get(0).toString();
                         yesterdayTurnover = new BigDecimal(s.split(",")[6]);
+                        lastTimeMax = new BigDecimal(s.split(",")[5]);
+
+                        //获取昨日竞价金额
+                        String date = list.get(0).toString();
+                        thisBidding = new BigDecimal(date.split(",")[6]);
+                        thisBiddingVolume = Integer.parseInt(date.split(",")[5]);
                     }
 
                     index++;
@@ -261,15 +277,36 @@ public class NoticeWebsocket {
 
 //        System.out.println(yesterdayTurnover.divide(thisBidding, BigDecimal.ROUND_CEILING).multiply(new BigDecimal(100)));
 
-
+                //比值数
+                BigDecimal rationNumber = null;
                 //今日成交量 / 365天最大成交量>0.5 并且 今日竞价 > 昨日分时最大*0.5  并且 今日竞价成交额>10000000
                 if (bizhi2 && flag == 1 && thisBidding.compareTo(new BigDecimal(10000000)) == 1) {
-                    System.out.println("当前标底可以进行一个观察股票ID: " + stockId + " 股票名称: " + stockName + "比值数是:" + yesterdayTurnover.divide(thisBidding, BigDecimal.ROUND_CEILING));
+                    rationNumber = yesterdayTurnover.divide(thisBidding, BigDecimal.ROUND_CEILING);
+                    System.out.println("当前标底可以进行一个观察股票ID: " + stockId + " 股票名称: " + stockName + "比值数是:" + rationNumber);
                 }
 
+
+                //新增对象
                 StockInfo stockInfo = new StockInfo();
                 stockInfo.setStockId(stockId);
                 stockInfo.setStockName(stockName);
+                stockInfo.setRatioOne(flag + "");
+                stockInfo.setRatioTwo(bizhi2 + "");
+                stockInfo.setRatioNumber(rationNumber + "");
+                stockInfo.setLastBiddingPrice(thisBiddingVolume + "");
+                stockInfo.setThisBiddingPrice(thisBidding + "");
+
+                stockInfo.setLastSealSize("昨日封单大小");
+                stockInfo.setLastTimeMax(lastTimeMax + "");
+
+                stockInfo.setLastTotalDeal("昨日总成交量");
+                stockInfo.setThisNoDeal("8");
+                stockInfo.setThisOneDeal("9");
+                stockInfo.setThisBiddingTenAvgDeal("10");
+                stockInfo.setLastFiveAvgOneMinuteDeal("11");
+                stockInfo.setLastDeal("12");
+
+
                 listStockInfo.add(stockInfo);
             } catch (Exception e) {
 
