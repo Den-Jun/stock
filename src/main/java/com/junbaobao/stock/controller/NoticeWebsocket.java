@@ -333,7 +333,7 @@ public class NoticeWebsocket {
             String stockId = jsonObject1.getString("c");
             String stockName = jsonObject1.getString("n");
             String m = jsonObject1.getString("m");
-           // getStockInfo(stockId);
+            // getStockInfo(stockId);
         }
 
     }

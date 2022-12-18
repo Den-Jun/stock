@@ -1,0 +1,55 @@
+drop table if exists SHARE_DATA;
+
+/*==============================================================*/
+/* Table: SHARE_DATA                                            */
+/*==============================================================*/
+create table SHARE_DATA
+(
+   ID                   varchar(40) comment 'ID',
+   CODE                 varchar(40) comment '股票编码',
+   SHARE_NAME           varchar(400) comment '股票名称',
+    DATA_TIME           varchar(400) comment '数据时间',
+   CREATE_TIME          date comment '创建日期',
+   CONTINUITY_DAY       int comment '连板天数',
+   YESTERDAY_BIDDING_VOLUME decimal comment '昨日竞价量',
+   TODAY_BIDDING_VOLUME decimal comment '今天竞价量',
+   YESTERDAY_SEALED_VOLUME decimal comment '昨日封单大小',
+   YESTERDAY_MINTER_MAX decimal comment '昨日分时最大量',
+   YESTERDAY_TOTAL      decimal comment '昨日总成交量',
+   TODAY_UNMATCHED      decimal comment '今天未匹配量',
+   TODAY_FIRST_MINUTE   decimal comment '今天第一分钟成交量',
+   YESTERDAY_FIRST_MINUTE decimal comment '竞价十分钟的平均每一分钟交易量',
+   TODAY_BIDDING_MINUTE_AVERAGE decimal comment '竞价十分钟的平均每一分钟交易量',
+   FIVE_DAY_AVERAGE_MINUTES decimal comment '过去五天平均每一分钟交易量',
+   BEFORE_YESTERDAY     decimal comment '前天成交量'
+);
+
+alter table SHARE_DATA comment '股票数据';
+
+
+
+drop table if exists RATIO_DATA;
+
+/*==============================================================*/
+/* Table: RATIO_DATA                                            */
+/*==============================================================*/
+create table RATIO_DATA
+(
+   ID                   varchar(40) comment 'ID',
+    CODE                 varchar(40) comment '股票编码',
+      SHARE_NAME           varchar(400) comment '股票名称',
+       DATA_TIME           varchar(400) comment '数据时间',
+   CREATE_TIME          date comment '创建时间',
+   UNSUCCESSFUL_BIDDING decimal comment '未竞成交比（未匹配量/竞价量）',
+   BIDDING_YESTERDAY    decimal comment '竞昨成交比(竞价量/昨日成交量)',
+   BIDDING_MINTER       decimal comment '竞价分钟比(竞价十分钟的平均每一分钟交易量/过去五天平均每分钟交易量)',
+   BIDDING              decimal comment '竞价比(今日竞价量/昨日竞价量)',
+   EXPLOSIVE_QUANTITY   decimal comment '爆量系数（竞价量/昨日分时最大量）',
+   YESTERDAY_BAN        decimal comment '昨日上板系数（昨日最大分时/昨日成交量）',
+   BIDDING_SEALED       decimal comment '竞封比（竞价量/昨日封单量）',
+   YESTERDAY_FRONT      decimal comment '昨前比（昨日成交量/前日成交量）',
+   YESTERDAY_BIDDING    decimal comment '昨竞成交比（昨天竞价量/昨天成交量）'
+
+);
+
+alter table RATIO_DATA comment '比值数据';
