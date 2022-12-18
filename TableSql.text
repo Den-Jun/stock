@@ -40,15 +40,15 @@ create table RATIO_DATA
       SHARE_NAME           varchar(400) comment '股票名称',
        DATA_TIME           varchar(400) comment '数据时间',
    CREATE_TIME          date comment '创建时间',
-   UNSUCCESSFUL_BIDDING decimal comment '未竞成交比（未匹配量/竞价量）',
-   BIDDING_YESTERDAY    decimal comment '竞昨成交比(竞价量/昨日成交量)',
-   BIDDING_MINTER       decimal comment '竞价分钟比(竞价十分钟的平均每一分钟交易量/过去五天平均每分钟交易量)',
-   BIDDING              decimal comment '竞价比(今日竞价量/昨日竞价量)',
-   EXPLOSIVE_QUANTITY   decimal comment '爆量系数（竞价量/昨日分时最大量）',
-   YESTERDAY_BAN        decimal comment '昨日上板系数（昨日最大分时/昨日成交量）',
-   BIDDING_SEALED       decimal comment '竞封比（竞价量/昨日封单量）',
-   YESTERDAY_FRONT      decimal comment '昨前比（昨日成交量/前日成交量）',
-   YESTERDAY_BIDDING    decimal comment '昨竞成交比（昨天竞价量/昨天成交量）'
+   UNSUCCESSFUL_BIDDING decimal(20,5) comment '未竞成交比（未匹配量/竞价量）',
+   BIDDING_YESTERDAY    decimal(20,5) comment '竞昨成交比(竞价量/昨日成交量)',
+   BIDDING_MINTER       decimal(20,5) comment '竞价分钟比(竞价十分钟的平均每一分钟交易量/过去五天平均每分钟交易量)',
+   BIDDING              decimal(20,5) comment '竞价比(今日竞价量/昨日竞价量)',
+   EXPLOSIVE_QUANTITY   decimal(20,5) comment '爆量系数（竞价量/昨日分时最大量）',
+   YESTERDAY_BAN        decimal(20,5) comment '昨日上板系数（昨日最大分时/昨日成交量）',
+   BIDDING_SEALED       decimal(20,5) comment '竞封比（竞价量/昨日封单量）',
+   YESTERDAY_FRONT      decimal(20,5) comment '昨前比（昨日成交量/前日成交量）',
+   YESTERDAY_BIDDING    decimal(20,5) comment '昨竞成交比（昨天竞价量/昨天成交量）'
 
 );
 

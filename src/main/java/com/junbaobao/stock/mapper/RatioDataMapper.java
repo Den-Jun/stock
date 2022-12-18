@@ -12,7 +12,7 @@ import java.util.List;
 public interface RatioDataMapper extends BaseMapper<RatioData> {
 
 
-    @Select("select * from RATIO_DATA where date_time = #{dateStr}")
+    @Select("select * from RATIO_DATA where data_time = #{dateStr}")
     List<RatioData> getRatioDataByDateStr(@Param("dateStr") String dateStr);
 
 }

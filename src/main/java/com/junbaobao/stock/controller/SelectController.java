@@ -23,7 +23,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 127.0.0.1:8089/select/productionRatio
+ * 127.0.0.1:8089/select/productionData
  * 127.0.0.1:8089/select/productionRatio
  * 127.0.0.1:8089/select/getRatioDataListByDayStr
  * 127.0.0.1:8089/select/getShareDateListByDayStr
@@ -45,7 +45,7 @@ public class SelectController {
      */
 
 
-//     127.0.0.1:8089/select/productionRatio
+//     127.0.0.1:8089/select/productionData
     @GetMapping("/productionData")
     public int productionData(String dayStr) {
         List<String> banCodeByDay = getBanCodeByDay(dayStr);
@@ -81,9 +81,6 @@ public class SelectController {
                     secId = 0 + "." + stockId;
                 }
 
-
-                Map<String, String> map = new HashMap<String, String>();
-
                 //获取走势  可以取都是天的 最多5天
                 String thisUrl = "https://push2his.eastmoney.com/api/qt/stock/trends2/get?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f20&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f20&ut=fa5fd1943c7b386f172d6893dbfba10b&secid=" + secId + "&ndays=2&iscr=1&iscca=0";
                 String body = HttpRequest.get(thisUrl).execute().body();
@@ -97,28 +94,29 @@ public class SelectController {
                     String date = split[0];
                     return DataUtil.toDate(date, "yyyy-MM-dd");
                 }));
+                Object[] objects = thisMap.keySet().toArray();
                 //昨日09：30数据
-                Object yesterdayBiddingData = thisMap.get(0).get(0);
+                Object yesterdayBiddingData = thisMap.get(objects[1]).get(0);
                 BigDecimal yesterdayBiddingVolume = new BigDecimal(yesterdayBiddingData.toString().split(",")[5]);
 
                 //昨日09：31数据
-                Object yesterdayFirstMinuteData = thisMap.get(0).get(1);
+                Object yesterdayFirstMinuteData = thisMap.get(objects[1]).get(1);
                 BigDecimal yesterdayFirstMinute = new BigDecimal(yesterdayFirstMinuteData.toString().split(",")[5]);
 
                 //今天09：30
-                Object todayBiddingData = thisMap.get(1).get(0);
+                Object todayBiddingData = thisMap.get(objects[0]).get(0);
                 BigDecimal todayBiddingVolume = new BigDecimal(todayBiddingData.toString().split(",")[5]);
 
                 //今天09：31
                 BigDecimal todayFirstMinute = new BigDecimal(0);
-                List<Object> todayData = thisMap.get(1);
+                List<Object> todayData = thisMap.get(objects[0]);
                 int size = todayData.size();
                 if (size > 1) {
                     todayFirstMinute = new BigDecimal(todayData.get(1).toString().split(",")[5]);
                 }
 
                 //获取昨日分时最大量
-                List<Object> yesterdayDateList = thisMap.get(0).stream().sorted(Comparator.comparing(sort ->
+                List<Object> yesterdayDateList = thisMap.get(objects[1]).stream().sorted(Comparator.comparing(sort ->
                         Double.parseDouble(sort.toString().split(",")[6])
                 ).reversed()).collect(Collectors.toList());
                 String s = yesterdayDateList.get(0).toString();
@@ -164,7 +162,7 @@ public class SelectController {
 
                 //
                 List<Object> oneYearDateData = pastList.stream().sorted(Comparator.comparing(sort -> {
-                    return Integer.parseInt(sort.toString().split(",")[0]);
+                    return String.valueOf(sort.toString().split(",")[0]);
                 }).reversed()).collect(Collectors.toList());
                 //昨天交易量
                 Object yesterdayData = oneYearDateData.get(1);
@@ -218,7 +216,8 @@ public class SelectController {
                 shareDate.setBeforeYesterday(beforeYesterday);
                 shareDateMapper.insert(shareDate);
             } catch (Exception e) {
-                System.out.println(" 股票ID: " + stockId + " 股票名称: " + stockName + "报错");
+                System.out.println(" 股票ID: " + stockId + " 股票名称: " + stockName + "报错;e:"+e.getMessage());
+                e.printStackTrace();
             }
         }
         return true;

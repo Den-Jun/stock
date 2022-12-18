@@ -11,7 +11,7 @@ import java.util.List;
 @Mapper
 public interface ShareDateMapper extends BaseMapper<ShareDate> {
 
-    @Select("select * from Share_Date where date_time= #{dateStr}")
+    @Select("select * from Share_Data where data_time= #{dateStr}")
     List<ShareDate> getShareDateByDateStr(@Param("dateStr") String dateStr);
 
 }
