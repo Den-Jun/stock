@@ -93,4 +93,9 @@ public class RatioData {
     @TableField("YESTERDAY_BIDDING")
     private BigDecimal yesterdayBidding;
 
+    /**
+     * '竞年比（今天竞价量/一年最大量）'
+     */
+    @TableField("YEAR_BIDDING")
+    private BigDecimal yearBidding;
 }

@@ -7,54 +7,140 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.junbaobao.stock.mapper.RatioDataMapper;
 import com.junbaobao.stock.mapper.ShareDateMapper;
+import com.junbaobao.stock.mapper.ShareDayDataMapper;
 import com.junbaobao.stock.model.dto.Ban;
 import com.junbaobao.stock.model.po.RatioData;
 import com.junbaobao.stock.model.po.ShareDate;
+import com.junbaobao.stock.model.po.ShareDayData;
 import com.junbaobao.stock.util.DataUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 127.0.0.1:8089/select/productionData
- * 127.0.0.1:8089/select/productionRatio
- * 127.0.0.1:8089/select/getRatioDataListByDayStr
- * 127.0.0.1:8089/select/getShareDateListByDayStr
+ * 不要测试执行这两个避免打乱数据
+ * #生成复盘数据 ---每天收盘后执行
+ * http://127.0.0.1:8089/select/productionBanShareDayDateByDayStr?dayStr=收盘日期
+ * #生成比值数据 -- 开盘09：26 后执行  yyyymmdd
+ * http://127.0.0.1:8089/select/productionRatio?yesterdayStr=上一个交易日&todayStr=今天
+ * <p>
+ * #查看比值结果
+ * http://127.0.0.1:8089/select/getRatioDataListByDayStr?dayStr=比值日期
  */
 @RestController
 @RequestMapping("/select")
+@Slf4j
 public class SelectController {
 
     @Resource
     ShareDateMapper shareDateMapper;
     @Resource
     RatioDataMapper ratioDataMapper;
+    @Resource
+    ShareDayDataMapper shareDayDataMapper;
+
+
+    @GetMapping("/getBiddingVolume")
+    public String getBiddingVolume(String secId) {
+        String thisUrl = "https://push2his.eastmoney.com/api/qt/stock/trends2/get?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f20&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f20&ut=fa5fd1943c7b386f172d6893dbfba10b&secid=" + secId + "&ndays=1&iscr=1&iscca=0";
+        String body = HttpRequest.get(thisUrl).execute().body();
+        JSONObject jsonObject = JSON.parseObject(body);
+        JSONObject data = jsonObject.getJSONObject("data");
+        JSONArray trendsList = data.getJSONArray("trends");
+        return trendsList.get(11).toString().split(",")[5];
+    }
 
     /**
-     * 生成数据
+     * 生成比值数据
      *
      * @param dayStr
      * @return
      */
+    //     127.0.0.1:8089/select/productionRatio
+    @GetMapping("/productionRatio")
+    public boolean productionRatio(String yesterdayStr, String todayStr) {
+        List<ShareDayData> shareDateByDateStr = shareDayDataMapper.getShareDayData(yesterdayStr);
+        for (ShareDayData shareDate : shareDateByDateStr) {
 
+            String biddingVolumeStr = getBiddingVolume(shareDate.getSecId());
+            BigDecimal biddingVolume = new BigDecimal(biddingVolumeStr);
 
-//     127.0.0.1:8089/select/productionData
-    @GetMapping("/productionData")
-    public int productionData(String dayStr) {
-        List<String> banCodeByDay = getBanCodeByDay(dayStr);
-        boolean shareInfo = getShareInfo(banCodeByDay, dayStr);
-        return banCodeByDay.size();
+            RatioData ratioData = new RatioData();
+            ratioData.setId(UUID.randomUUID().toString());
+            ratioData.setDataTime(todayStr);
+            ratioData.setCreateTime(new Date());
+            ratioData.setShareName(shareDate.getShareName());
+            ratioData.setCode(shareDate.getCode());
+            //'未竞成交比（未匹配量/竞价量）',
+//            ratioData.setUnsuccessfulBidding();
+            //'竞价分钟比(竞价十分钟的平均每一分钟交易量/过去五天平均每分钟交易量)'
+            ratioData.setBiddingYesterday(shareDate.getBiddingMinuteAverage().divide(shareDate.getFiveDayAverageMinutes(), 5, RoundingMode.FLOOR));
+            //'竞价比(今日竞价量/昨日竞价量)'
+            ratioData.setBiddingMinter(biddingVolume.divide(shareDate.getBiddingVolume(), 5, RoundingMode.FLOOR));
+            //'爆量系数（竞价量/昨日分时最大量）'
+            ratioData.setExplosiveQuantity(biddingVolume.divide(shareDate.getTodayMinterMax(), 5, RoundingMode.FLOOR));
+            //'昨日上板系数（昨日最大分时/昨日成交量）'
+            ratioData.setYesterdayBan(shareDate.getTodayMinterMax().divide(shareDate.getTotalVolume(), 5, RoundingMode.FLOOR));
+//            //'竞封比（竞价量/昨日封单量）'
+            ratioData.setBiddingSealed(biddingVolume.divide(shareDate.getSealedVolume(), 5, RoundingMode.FLOOR));
+            //'昨前比（昨日成交量/前日成交量）'
+            ratioData.setYesterdayFront(shareDate.getTotalVolume().divide(shareDate.getYesterdayTotalVolume(), 5, RoundingMode.FLOOR));
+            // '昨竞成交比（昨天竞价量/昨天成交量）'
+            ratioData.setYesterdayBidding(shareDate.getBiddingVolume().divide(biddingVolume, 5, RoundingMode.FLOOR));
+            //竞年比（今天竞价量/一年最大量）
+            ratioData.setYearBidding(biddingVolume.divide(shareDate.getOneYearMax(), 5, RoundingMode.FLOOR));
+            ratioDataMapper.insert(ratioData);
+        }
+        return true;
+    }
+
+    /**
+     * 获取比值数据
+     *
+     * @param dayStr
+     * @return
+     */
+    //     127.0.0.1:8089/select/getRatioDataListByDayStr
+    @GetMapping("getRatioDataListByDayStr")
+    public List<RatioData> getRatioDataListByDayStr(String dayStr) {
+        if (dayStr == null) {
+            dayStr = DateUtil.format(new Date(), "yyyymmdd");
+        }
+        return ratioDataMapper.getRatioDataByDateStr(dayStr);
     }
 
 
-    public List<String> getBanCodeByDay(String dayStr) {
+    /**
+     * 每天收盘生成收盘数据
+     *
+     * @param dayStr
+     * @return
+     */
+    @GetMapping("/productionBanShareDayDateByDayStr")
+    public int productionBanShareDayDateByDayStr(String dayStr) {
+        List<ShareDayData> shareDayDataList = saveBanData(dayStr);
+        boolean b = productionShareDayData(shareDayDataList);
+        return shareDayDataList.size();
+    }
+
+
+    /**
+     * 保存涨停板数据
+     *
+     * @param dayStr
+     * @return
+     */
+    public List<ShareDayData> saveBanData(String dayStr) {
+
         if (dayStr == null) {
             dayStr = DateUtil.format(new Date(), "yyyymmdd");
         }
@@ -64,63 +150,63 @@ public class SelectController {
         JSONObject data = jsonObject.getJSONObject("data");
         JSONArray pool = data.getJSONArray("pool");
         List<Ban> bans = JSONObject.parseArray(pool.toString(), Ban.class);
-        List<String> collect = bans.stream().map(Ban::getC).collect(Collectors.toList());
-        return collect;
+        List<ShareDayData> shareDayDataList = new ArrayList<>();
+        for (Ban ban : bans) {
+            ShareDayData shareDayData = new ShareDayData();
+            shareDayData.setId(UUID.randomUUID().toString());
+            shareDayData.setCode(ban.getC());
+            shareDayData.setDataTime(dayStr);
+            shareDayData.setCreateTime(new Date());
+            shareDayData.setShareName(ban.getN());
+            shareDayData.setHybk(ban.getHybk());
+            shareDayData.setContinuityDay(ban.getLbc());
+            shareDayDataMapper.insert(shareDayData);
+            shareDayDataList.add(shareDayData);
+        }
+        return shareDayDataList;
     }
 
-
-    public boolean getShareInfo(List<String> stockList, String dateStr) {
-        for (String stockId : stockList) {
-            String stockName = null;
+    /**
+     * 填充成交数据
+     *
+     * @param shareDayDataList
+     * @return
+     */
+    public boolean productionShareDayData(List<ShareDayData> shareDayDataList) {
+        for (ShareDayData shareDayData : shareDayDataList) {
+            String code = shareDayData.getCode();
+            String stockName = shareDayData.getShareName();
             try {
                 //这里判断当前股票属于那个板块
-                String secId = stockId;
-                if (stockId.startsWith("6")) {
-                    secId = 1 + "." + stockId;
+                String secId = code;
+                if (code.startsWith("6")) {
+                    secId = 1 + "." + code;
                 } else {
-                    secId = 0 + "." + stockId;
+                    secId = 0 + "." + code;
                 }
 
                 //获取走势  可以取都是天的 最多5天
-                String thisUrl = "https://push2his.eastmoney.com/api/qt/stock/trends2/get?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f20&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f20&ut=fa5fd1943c7b386f172d6893dbfba10b&secid=" + secId + "&ndays=2&iscr=1&iscca=0";
+                String thisUrl = "https://push2his.eastmoney.com/api/qt/stock/trends2/get?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f20&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f20&ut=fa5fd1943c7b386f172d6893dbfba10b&secid=" + secId + "&ndays=1&iscr=1&iscca=0";
                 String body = HttpRequest.get(thisUrl).execute().body();
                 JSONObject jsonObject = JSON.parseObject(body);
                 JSONObject data = jsonObject.getJSONObject("data");
                 JSONArray trendsList = data.getJSONArray("trends");
-
-                //根据时间进行一个分组
-                Map<String, List<Object>> thisMap = trendsList.stream().collect(Collectors.groupingBy(d -> {
-                    String[] split = d.toString().split(",");
-                    String date = split[0];
-                    return DataUtil.toDate(date, "yyyy-MM-dd");
-                }));
-                Object[] objects = thisMap.keySet().toArray();
-                //昨日09：30数据
-                Object yesterdayBiddingData = thisMap.get(objects[1]).get(0);
-                BigDecimal yesterdayBiddingVolume = new BigDecimal(yesterdayBiddingData.toString().split(",")[5]);
-
-                //昨日09：31数据
-                Object yesterdayFirstMinuteData = thisMap.get(objects[1]).get(1);
-                BigDecimal yesterdayFirstMinute = new BigDecimal(yesterdayFirstMinuteData.toString().split(",")[5]);
-
-                //今天09：30
-                Object todayBiddingData = thisMap.get(objects[0]).get(0);
-                BigDecimal todayBiddingVolume = new BigDecimal(todayBiddingData.toString().split(",")[5]);
-
+                //09：30数据
+                Object todayBiddingData = trendsList.get(11);
+                //今天竞价金额
+                BigDecimal biddingVolume = new BigDecimal(todayBiddingData.toString().split(",")[5]);
                 //今天09：31
-                BigDecimal todayFirstMinute = new BigDecimal(0);
-                List<Object> todayData = thisMap.get(objects[0]);
-                int size = todayData.size();
-                if (size > 1) {
-                    todayFirstMinute = new BigDecimal(todayData.get(1).toString().split(",")[5]);
-                }
+                Object firstMinuteData = trendsList.get(16);
+                //今天第一分钟量
+                BigDecimal firstMinuteVolume = new BigDecimal(firstMinuteData.toString().split(",")[5]);
 
-                //获取昨日分时最大量
-                List<Object> yesterdayDateList = thisMap.get(objects[1]).stream().sorted(Comparator.comparing(sort ->
+                //今天数据按照成交量大小排序
+                List<Object> todayDateList = trendsList.stream().sorted(Comparator.comparing(sort ->
                         Double.parseDouble(sort.toString().split(",")[6])
                 ).reversed()).collect(Collectors.toList());
-                String s = yesterdayDateList.get(0).toString();
-                BigDecimal yesterdayMinterMax = new BigDecimal(s.split(",")[5]);
+                //获取第一个数据成交量最大
+                String max = todayDateList.get(0).toString();
+                BigDecimal todayMinterMax = new BigDecimal(max.split(",")[5]);
 
                 //获取以往的走势
                 String pastUrl = "https://push2his.eastmoney.com/api/qt/stock/kline/get?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&beg=0&end=20500101&ut=fa5fd1943c7b386f172d6893dbfba10b&rtntype=6&secid=" + secId + "&klt=101&fqt=1";
@@ -157,139 +243,57 @@ public class SelectController {
                     return Integer.parseInt(sort.toString().split(",")[5]);
                 }).reversed()).collect(Collectors.toList());
                 //最大365天内的最大的成交量
-                String maxiTurnover = data365List.get(0).toString();
+                BigDecimal oneYearMax = new BigDecimal(data365List.get(0).toString().split(",")[5]);
 
-
-                //
+                //一年的数据按照时间排序
                 List<Object> oneYearDateData = pastList.stream().sorted(Comparator.comparing(sort -> {
                     return String.valueOf(sort.toString().split(",")[0]);
                 }).reversed()).collect(Collectors.toList());
+                //今天成交量
+                Object todayData = oneYearDateData.get(0);
+                BigDecimal totalVolume = new BigDecimal(todayData.toString().split(",")[5]);
                 //昨天交易量
                 Object yesterdayData = oneYearDateData.get(1);
-                BigDecimal yesterdayTotal = new BigDecimal(yesterdayData.toString().split(",")[5]);
-                //前天交易量
-                Object beforeYesterdayData = oneYearDateData.get(2);
-                BigDecimal beforeYesterday = new BigDecimal(beforeYesterdayData.toString().split(",")[5]);
+                BigDecimal yesterdayTotalVolume = new BigDecimal(yesterdayData.toString().split(",")[5]);
 
-                List<Object> sixDayData = oneYearDateData.stream().limit(6).collect(Collectors.toList());
-                List<Object> fiveDayData = sixDayData.stream().skip(1).collect(Collectors.toList());
+                //竞价十分钟平均成交量
+                BigDecimal biddingMinuteAverage = biddingVolume.divide(new BigDecimal(10), 5, RoundingMode.FLOOR);
 
+                List<Object> fiveDayData = oneYearDateData.stream().limit(5).collect(Collectors.toList());
                 //前五日总成交量
                 int beforeFiveSum = fiveDayData.stream().mapToInt(i -> {
                     return Integer.parseInt(i.toString().split(",")[5]);
                 }).sum();
+                BigDecimal fiveDayAverageMinutes = new BigDecimal(beforeFiveSum).divide(new BigDecimal(6 * 60), 5, RoundingMode.FLOOR);
 
-//                //当天档口行情报价
-//                String hqbjUrl = "http://63.push2.eastmoney.com/api/qt/stock/sse?ut=fa5fd1943c7b386f172d6893dbfba10b&fltt=2&invt=2&volt=2&fields=f152,f288,f43,f57,f58,f169,f170,f46,f44,f51,f168,f47,f164,f116,f60,f45,f52,f50,f48,f167,f117,f71,f161,f49,f530,f135,f136,f137,f138,f139,f141,f142,f144,f145,f147,f148,f140,f143,f146,f149,f55,f62,f162,f92,f173,f104,f105,f84,f85,f183,f184,f185,f186,f187,f188,f189,f190,f191,f192,f107,f111,f86,f177,f78,f110,f262,f263,f264,f267,f268,f250,f251,f252,f253,f254,f255,f256,f257,f258,f266,f269,f270,f271,f273,f274,f275,f127,f199,f128,f198,f259,f260,f261,f171,f277,f278,f279,f31,f32,f33,f34,f35,f36,f37,f38,f39,f40,f20,f19,f18,f17,f16,f15,f14,f13,f12,f11,f531&secid="+secId;
-//
-//                String hqbjBody = HttpRequest.get(hqbjUrl).execute().body();
-//                hqbjBody = hqbjBody.replace("data: ", "");
-//                JSONObject hqbjJsonObject = JSON.parseObject(hqbjBody);
-//                JSONObject hqbjData = pastJsonObject.getJSONObject("data");
-//                String mai1 = data.getString("f20");
-//
-                ShareDate shareDate = new ShareDate();
-                shareDate.setId(UUID.randomUUID().toString());
-                shareDate.setCode(stockId);
-                shareDate.setDataTime(dateStr);
-                shareDate.setCreateTime(new Date());
-                shareDate.setShareName(stockName);
-                // 昨日竞价量
-                shareDate.setYesterdayBiddingVolume(yesterdayBiddingVolume);
-                //今天竞价金量
-                shareDate.setTodayBiddingVolume(todayBiddingVolume);
-                //昨日封单大小
-                // shareDate.setYesterdaySealedVolume();
-                //昨日分时最大量
-                shareDate.setYesterdayMinterMax(yesterdayMinterMax);
-                //昨日总成交量
-                shareDate.setYesterdayTotal(yesterdayTotal);
-                //今天未匹配量
-                //shareDate.setTodayUnmatched();
-                //今天第一分钟成交量
-                shareDate.setTodayFirstMinute(todayFirstMinute);
-                //竞价十分钟的平均每一分钟交易量
-                shareDate.setTodayBiddingMinuteAverage(todayBiddingVolume.divide(new BigDecimal(10), 5, BigDecimal.ROUND_FLOOR));
-                //过去五天平均每一分钟交易量
-                shareDate.setFiveDayAverageMinutes(new BigDecimal(beforeFiveSum).divide(new BigDecimal(6 * 60), 5, BigDecimal.ROUND_FLOOR));
-                //前日交易量
-                shareDate.setBeforeYesterday(beforeYesterday);
-                shareDateMapper.insert(shareDate);
+                //当天档口行情报价
+                String hqbjUrl = "http://63.push2.eastmoney.com/api/qt/stock/get?ut=fa5fd1943c7b386f172d6893dbfba10b&fltt=2&invt=2&volt=2&fields=f152,f288,f43,f57,f58,f169,f170,f46,f44,f51,f168,f47,f164,f116,f60,f45,f52,f50,f48,f167,f117,f71,f161,f49,f530,f135,f136,f137,f138,f139,f141,f142,f144,f145,f147,f148,f140,f143,f146,f149,f55,f62,f162,f92,f173,f104,f105,f84,f85,f183,f184,f185,f186,f187,f188,f189,f190,f191,f192,f107,f111,f86,f177,f78,f110,f262,f263,f264,f267,f268,f250,f251,f252,f253,f254,f255,f256,f257,f258,f266,f269,f270,f271,f273,f274,f275,f127,f199,f128,f198,f259,f260,f261,f171,f277,f278,f279,f31,f32,f33,f34,f35,f36,f37,f38,f39,f40,f20,f19,f18,f17,f16,f15,f14,f13,f12,f11,f531&secid=" + secId;
+
+                String hqbjBody = HttpRequest.get(hqbjUrl).execute().body();
+                hqbjBody = hqbjBody.replace("data: ", "");
+                JSONObject hqbjJsonObject = JSON.parseObject(hqbjBody);
+                JSONObject hqbjData = hqbjJsonObject.getJSONObject("data");
+                String mai1 = hqbjData.getString("f20");
+                BigDecimal sealedVolume = new BigDecimal(mai1);
+//                shareDayData.setUnmatchedVolume();
+                shareDayData.setBiddingVolume(biddingVolume);
+                shareDayData.setSecId(secId);
+                shareDayData.setFirstMinuteVolume(firstMinuteVolume);
+                shareDayData.setTodayMinterMax(todayMinterMax);
+                shareDayData.setTotalVolume(totalVolume);
+                shareDayData.setSealedVolume(sealedVolume);
+                shareDayData.setBiddingMinuteAverage(biddingMinuteAverage);
+                shareDayData.setFiveDayAverageMinutes(fiveDayAverageMinutes);
+                shareDayData.setYesterdayTotalVolume(yesterdayTotalVolume);
+                shareDayData.setOneYearMax(oneYearMax);
+                shareDayDataMapper.updateById(shareDayData);
+                log.info(shareDayData.toString());
             } catch (Exception e) {
-                System.out.println(" 股票ID: " + stockId + " 股票名称: " + stockName + "报错;e:"+e.getMessage());
+                System.out.println(" 股票ID: " + code + " 股票名称: " + stockName + "报错;e:" + e.getMessage());
                 e.printStackTrace();
             }
         }
         return true;
     }
-
-    /**
-     * 生成比值数据
-     *
-     * @param dateStr
-     * @return
-     */
-    //     127.0.0.1:8089/select/productionRatio
-    @GetMapping("/productionRatio")
-    public boolean productionRatio(String dateStr) {
-        List<ShareDate> shareDateByDateStr = shareDateMapper.getShareDateByDateStr(dateStr);
-        for (ShareDate shareDate : shareDateByDateStr) {
-            RatioData ratioData = new RatioData();
-            ratioData.setId(UUID.randomUUID().toString());
-            ratioData.setDataTime(dateStr);
-            ratioData.setCreateTime(new Date());
-            ratioData.setShareName(shareDate.getShareName());
-            ratioData.setCode(shareDate.getCode());
-            //'未竞成交比（未匹配量/竞价量）',
-//            ratioData.setUnsuccessfulBidding();
-            //'竞价分钟比(竞价十分钟的平均每一分钟交易量/过去五天平均每分钟交易量)'
-            ratioData.setBiddingYesterday(shareDate.getTodayBiddingMinuteAverage().divide(shareDate.getFiveDayAverageMinutes(), 5, BigDecimal.ROUND_FLOOR));
-            //'竞价比(今日竞价量/昨日竞价量)'
-            ratioData.setBiddingMinter(shareDate.getTodayBiddingVolume().divide(shareDate.getYesterdayBiddingVolume(), 5, BigDecimal.ROUND_FLOOR));
-            //'爆量系数（竞价量/昨日分时最大量）'
-            ratioData.setExplosiveQuantity(shareDate.getTodayBiddingVolume().divide(shareDate.getYesterdayMinterMax(), 5, BigDecimal.ROUND_FLOOR));
-            //'昨日上板系数（昨日最大分时/昨日成交量）'
-            ratioData.setYesterdayBan(shareDate.getYesterdayMinterMax().divide(shareDate.getYesterdayTotal(), 5, BigDecimal.ROUND_FLOOR));
-//            //'竞封比（竞价量/昨日封单量）'
-//            ratioData.setBiddingSealed();
-            //'昨前比（昨日成交量/前日成交量）'
-            ratioData.setYesterdayFront(shareDate.getYesterdayTotal().divide(shareDate.getBeforeYesterday(), 5, BigDecimal.ROUND_FLOOR));
-            // '昨竞成交比（昨天竞价量/昨天成交量）'
-            ratioData.setYesterdayBidding(shareDate.getYesterdayBiddingVolume().divide(shareDate.getYesterdayTotal(), 5, BigDecimal.ROUND_FLOOR));
-            ratioDataMapper.insert(ratioData);
-        }
-        return true;
-    }
-
-    /**
-     * 获取比值数据
-     *
-     * @param dayStr
-     * @return
-     */
-    //     127.0.0.1:8089/select/getRatioDataListByDayStr
-    @GetMapping("getRatioDataListByDayStr")
-    public List<RatioData> getRatioDataListByDayStr(String dayStr) {
-        if (dayStr == null) {
-            dayStr = DateUtil.format(new Date(), "yyyymmdd");
-        }
-        return ratioDataMapper.getRatioDataByDateStr(dayStr);
-    }
-
-    /**
-     * 获取比值数据
-     *
-     * @param dayStr
-     * @return
-     */
-    //     127.0.0.1:8089/select/getShareDateListByDayStr
-    @GetMapping("getShareDateListByDayStr")
-    public List<ShareDate> getShareDateListByDayStr(String dayStr) {
-        if (dayStr == null) {
-            dayStr = DateUtil.format(new Date(), "yyyymmdd");
-        }
-        return shareDateMapper.getShareDateByDateStr(dayStr);
-    }
-
 
 }

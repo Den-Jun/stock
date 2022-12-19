@@ -116,5 +116,10 @@ public class ShareDate {
     @TableField("BEFORE_YESTERDAY")
     private BigDecimal beforeYesterday;
 
+    /**
+     * 前天成交量
+     */
+    @TableField("ONE_YEAR_MAX")
+    private BigDecimal oneYearMax;
 
 }

@@ -25,4 +25,9 @@ public class Ban {
      */
     private String hybk;
 
+    /**
+     * 连扳天数
+     */
+    private int lbc;
+
 }
