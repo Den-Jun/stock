@@ -38,6 +38,16 @@ public class RatioData {
     private String dataTime;
 
     /**
+     * 是否涨停
+     */
+    @TableField("BAN")
+    private boolean ban;
+    /**
+     * '连板天数'
+     */
+    private int continuityDay;
+
+    /**
      * 未竞成交比（未匹配量/竞价量）
      */
     @TableField("UNSUCCESSFUL_BIDDING")

@@ -82,5 +82,11 @@
             <artifactId>druid-spring-boot-starter</artifactId>
             <version>1.1.21</version>
         </dependency>
+
+        <dependency>
+            <groupId>net.sf.jxls</groupId>
+            <artifactId>jxls-core</artifactId>
+            <version>1.0.6</version>
+        </dependency>
     </dependencies>
 </project>
