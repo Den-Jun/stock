@@ -11,6 +11,8 @@ import com.junbaobao.stock.model.dto.Ban;
 import com.junbaobao.stock.model.po.RatioData;
 import com.junbaobao.stock.model.po.ShareDate;
 import com.junbaobao.stock.util.DataUtil;
+import com.sun.org.apache.regexp.internal.RE;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -51,6 +53,16 @@ public class SelectController {
         List<String> banCodeByDay = getBanCodeByDay(dayStr);
         boolean shareInfo = getShareInfo(banCodeByDay, dayStr);
         return banCodeByDay.size();
+    }
+
+    @GetMapping("/getStockRatioData")
+    public  Map<String,Object> getStockRatioData(String stockId){
+        Map<String,Object> map = new HashMap<String,Object>();
+        RatioData ratioData = new RatioData();
+        ratioData.setCode("1213");
+        ratioData.setShareName("1213");
+        map.put("ratioData",ratioData);
+        return map;
     }
 
 
@@ -216,7 +228,7 @@ public class SelectController {
                 shareDate.setBeforeYesterday(beforeYesterday);
                 shareDateMapper.insert(shareDate);
             } catch (Exception e) {
-                System.out.println(" 股票ID: " + stockId + " 股票名称: " + stockName + "报错;e:"+e.getMessage());
+                System.out.println(" 股票ID: " + stockId + " 股票名称: " + stockName + "报错;e:" + e.getMessage());
                 e.printStackTrace();
             }
         }

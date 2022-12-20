@@ -54,7 +54,7 @@
             <td>{{info['thisBiddingTenAvgDeal']}}</td> <!--竞价十分钟的平均每一分钟交易量-->
             <td>{{info['lastFiveAvgOneMinuteDeal']}}</td> <!--过去五天平均每一分钟交易量	-->
             <td>{{info['lastDeal']}}</td> <!--前日交易量	-->
-            <td></td> <!--昨收-->
+            <td><button onclick="window.location.href='ratio.html'" type="button" id="info">详细竞价数据</button></td> <!--昨收-->
             <td></td> <!--昨收-->
         </tr>
         <tr>
@@ -81,7 +81,6 @@
                 this.init();
             },
             methods: {
-
                 init: function () {
                     var that = this;
                     console.log("================================")
