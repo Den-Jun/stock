@@ -48,6 +48,12 @@ public class RatioData {
      */
     private int continuityDay;
 
+
+    /**
+     * 压力金额
+     */
+    private BigDecimal pressureMoney;
+
     /**
      * 未竞成交比（未匹配量/竞价量）
      */

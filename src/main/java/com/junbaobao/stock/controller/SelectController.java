@@ -78,7 +78,7 @@ public class SelectController {
         JSONObject jsonObject = JSON.parseObject(body);
         JSONObject data = jsonObject.getJSONObject("data");
         JSONArray trendsList = data.getJSONArray("trends");
-        return trendsList.get(11).toString().split(",")[5];
+        return trendsList.get(11).toString().split(",")[5] + "-" + trendsList.get(11).toString().split(",")[1];
     }
 
     /**
@@ -95,13 +95,20 @@ public class SelectController {
 
         for (ShareDayData shareDate : shareDateByDateStr) {
             String biddingVolumeStr = getBiddingVolume(shareDate.getSecId());
+            String money = biddingVolumeStr.substring(biddingVolumeStr.indexOf("-") + 1);
+            biddingVolumeStr = biddingVolumeStr.substring(0, biddingVolumeStr.indexOf("-"));
+
             BigDecimal biddingVolume = new BigDecimal(biddingVolumeStr);
             RatioData ratioData = new RatioData();
+
             ratioData.setId(shareDate.getId());
             ratioData.setDataTime(todayStr.toString());
             ratioData.setCreateTime(new Date());
+            ratioData.setContinuityDay(shareDate.getContinuityDay());
             ratioData.setShareName(shareDate.getShareName());
             ratioData.setCode(shareDate.getCode());
+            //压力金额
+            ratioData.setPressureMoney(shareDate.getOneYearMax().multiply(new BigDecimal(money)).divide(new BigDecimal(1000000), 2, RoundingMode.FLOOR));
             //'未竞成交比（未匹配量/竞价量）',
 //            ratioData.setUnsuccessfulBidding();
             //'竞昨成交比(竞价量/昨日成交量)'
@@ -398,6 +405,13 @@ public class SelectController {
         httpResponse.setHeader("Content-Disposition", "attachment; filename=\"" + exportFileName + "\".xls");
         workbook.write(httpResponse.getOutputStream());
     }
+
+/**
+ *   获取昨日涨停，查看今天换手
+ *   压力4个亿  换手40%
+ *   压力8个亿 换手50%
+ *   压力10个亿 换手65%
+ */
 
 
     /**
