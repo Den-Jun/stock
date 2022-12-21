@@ -2,7 +2,6 @@ package com.junbaobao.stock.controller;
 
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.http.HttpRequest;
-
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
@@ -24,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -34,8 +35,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 /**
  * 不要测试执行这两个避免打乱数据
@@ -85,23 +84,23 @@ public class SelectController {
      */
     //     127.0.0.1:8089/select/productionRatio
     @GetMapping("/productionRatio")
-    public boolean productionRatio(String yesterdayStr, String todayStr) {
-        List<ShareDayData> shareDateByDateStr = shareDayDataMapper.getShareDayData(yesterdayStr);
-        for (ShareDayData shareDate : shareDateByDateStr) {
+    public boolean productionRatio(Integer yesterdayStr, Integer todayStr) {
+        int i = ratioDataMapper.deleteByDayStr(todayStr.toString());
+        List<ShareDayData> shareDateByDateStr = shareDayDataMapper.getShareDayData(yesterdayStr.toString());
 
+        for (ShareDayData shareDate : shareDateByDateStr) {
             String biddingVolumeStr = getBiddingVolume(shareDate.getSecId());
             BigDecimal biddingVolume = new BigDecimal(biddingVolumeStr);
-
             RatioData ratioData = new RatioData();
-            ratioData.setId(UUID.randomUUID().toString());
-            ratioData.setDataTime(todayStr);
+            ratioData.setId(shareDate.getId());
+            ratioData.setDataTime(todayStr.toString());
             ratioData.setCreateTime(new Date());
             ratioData.setShareName(shareDate.getShareName());
             ratioData.setCode(shareDate.getCode());
             //'未竞成交比（未匹配量/竞价量）',
 //            ratioData.setUnsuccessfulBidding();
-            //'竞价分钟比(竞价十分钟的平均每一分钟交易量/过去五天平均每分钟交易量)'
-            ratioData.setBiddingYesterday(shareDate.getBiddingMinuteAverage().divide(shareDate.getFiveDayAverageMinutes(), 5, RoundingMode.FLOOR));
+            //'竞昨成交比(竞价量/昨日成交量)'
+            ratioData.setBiddingYesterday(biddingVolume.divide(shareDate.getTotalVolume(), 5, RoundingMode.FLOOR));
             //'竞价比(今日竞价量/昨日竞价量)'
             ratioData.setBidding(biddingVolume.divide(shareDate.getBiddingVolume(), 5, RoundingMode.FLOOR));
             //竞价分钟比(竞价十分钟的平均每一分钟交易量/过去五天平均每分钟交易量)'
@@ -147,8 +146,10 @@ public class SelectController {
      * @return
      */
     @GetMapping("/productionBanShareDayDateByDayStr")
-    public int productionBanShareDayDateByDayStr(String dayStr) {
-        List<ShareDayData> shareDayDataList = saveBanData(dayStr);
+    public int productionBanShareDayDateByDayStr(Integer dayStr) {
+
+        int i = shareDayDataMapper.deleteByDataTime(dayStr.toString());
+        List<ShareDayData> shareDayDataList = saveBanData(dayStr.toString());
         boolean b = productionShareDayData(shareDayDataList);
         return shareDayDataList.size();
     }
@@ -174,7 +175,7 @@ public class SelectController {
         List<ShareDayData> shareDayDataList = new ArrayList<>();
         for (Ban ban : bans) {
             ShareDayData shareDayData = new ShareDayData();
-            shareDayData.setId(UUID.randomUUID().toString());
+            shareDayData.setId(dayStr + "-" + ban.getC());
             shareDayData.setCode(ban.getC());
             shareDayData.setDataTime(dayStr);
             shareDayData.setCreateTime(new Date());
@@ -321,8 +322,8 @@ public class SelectController {
      * 更新比值结果 是否涨停
      */
     @GetMapping("/updateRatioResult")
-    public int updateRatioResult(String todayStr) {
-        List<RatioData> ratioDataByDateStr = ratioDataMapper.getRatioDataByDateStr(todayStr);
+    public int updateRatioResult(Integer todayStr) {
+        List<RatioData> ratioDataByDateStr = ratioDataMapper.getRatioDataByDateStr(todayStr.toString());
         String url = "https://push2ex.eastmoney.com/getTopicZTPool?ut=7eea3edcaed734bea9cbfc24409ed989&dpt=wz.ztzt&Pageindex=0&pagesize=100&sort=fbt%3Aasc&date=" + todayStr + "&_=1670832933186";
         String body = HttpRequest.get(url).execute().body();
         JSONObject jsonObject = JSON.parseObject(body);
@@ -348,19 +349,18 @@ public class SelectController {
 
 
     @GetMapping("/exportRatioData")
-    public void exportRatioData(String[] dayStrs) throws IOException, InvalidFormatException {
+    public void exportRatioData(Integer[] dayStrs) throws IOException, InvalidFormatException {
         QueryWrapper<RatioData> q = new QueryWrapper<>();
         q.in("DATA_TIME", dayStrs);
         q.orderByDesc("DATA_TIME");
         List<RatioData> ratioData = ratioDataMapper.selectList(q);
-        export("temp/比值结果.xls",ratioData);
+        export("temp/比值结果.xls", ratioData);
     }
 
     @Resource
     HttpServletRequest request;
     @Resource
     HttpServletResponse httpResponse;
-
 
 
     public void export(String filePath, List<RatioData> list) throws InvalidFormatException, IOException {

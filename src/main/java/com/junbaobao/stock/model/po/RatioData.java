@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Date;
 
 
@@ -108,4 +109,6 @@ public class RatioData {
      */
     @TableField("YEAR_BIDDING")
     private BigDecimal yearBidding;
+
+
 }
