@@ -11,6 +11,7 @@ import com.junbaobao.stock.mapper.ShareDateMapper;
 import com.junbaobao.stock.mapper.ShareDayDataMapper;
 import com.junbaobao.stock.model.dto.Ban;
 import com.junbaobao.stock.model.po.RatioData;
+import com.junbaobao.stock.model.po.ShareDate;
 import com.junbaobao.stock.model.po.ShareDayData;
 import com.junbaobao.stock.util.FileUtil;
 import lombok.extern.slf4j.Slf4j;
