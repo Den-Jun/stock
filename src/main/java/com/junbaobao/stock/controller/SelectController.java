@@ -14,7 +14,6 @@ import com.junbaobao.stock.model.po.ShareDate;
 import com.junbaobao.stock.model.po.ShareDayData;
 import com.junbaobao.stock.util.DataUtil;
 import lombok.extern.slf4j.Slf4j;
-import com.sun.org.apache.regexp.internal.RE;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -64,7 +63,7 @@ public class SelectController {
     /**
      * 生成比值数据
      *
-     * @param dayStr
+     * @param
      * @return
      */
     //     127.0.0.1:8089/select/productionRatio
@@ -347,20 +346,6 @@ public class SelectController {
         return true;
     }
 
-    /**
-     * 获取比值数据
-     *
-     * @param dayStr
-     * @return
-     */
-    //     127.0.0.1:8089/select/getRatioDataListByDayStr
-    @GetMapping("getRatioDataListByDayStr")
-    public List<RatioData> getRatioDataListByDayStr(String dayStr) {
-        if (dayStr == null) {
-            dayStr = DateUtil.format(new Date(), "yyyymmdd");
-        }
-        return ratioDataMapper.getRatioDataByDateStr(dayStr);
-    }
 
     /**
      * 获取比值数据
