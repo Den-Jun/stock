@@ -5,23 +5,33 @@ import cn.hutool.http.HttpRequest;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.junbaobao.stock.mapper.RatioDataMapper;
 import com.junbaobao.stock.mapper.ShareDateMapper;
 import com.junbaobao.stock.mapper.ShareDayDataMapper;
 import com.junbaobao.stock.model.dto.Ban;
 import com.junbaobao.stock.model.po.RatioData;
-import com.junbaobao.stock.model.po.ShareDate;
 import com.junbaobao.stock.model.po.ShareDayData;
-import com.junbaobao.stock.util.DataUtil;
+import com.junbaobao.stock.util.FileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import net.sf.jxls.transformer.XLSTransformer;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.junit.platform.commons.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -33,9 +43,13 @@ import java.util.stream.Collectors;
  * http://127.0.0.1:8089/select/productionBanShareDayDateByDayStr?dayStr=收盘日期
  * #生成比值数据 -- 开盘09：26 后执行  yyyymmdd
  * http://127.0.0.1:8089/select/productionRatio?yesterdayStr=上一个交易日&todayStr=今天
+ * #收盘后更新当天比值结果是否涨停
+ * http://127.0.0.1:8089/select/updateRatioResult?todayStr=今天
  * <p>
  * #查看比值结果
  * http://127.0.0.1:8089/select/getRatioDataListByDayStr?dayStr=比值日期
+ * #导出比值结果
+ * http://127.0.0.1:8089/select/exportRatioData?dayStrs=比值日期
  */
 @RestController
 @RequestMapping("/select")
@@ -50,6 +64,12 @@ public class SelectController {
     ShareDayDataMapper shareDayDataMapper;
 
 
+    /**
+     * 26分后取值
+     *
+     * @param secId
+     * @return
+     */
     @GetMapping("/getBiddingVolume")
     public String getBiddingVolume(String secId) {
         String thisUrl = "https://push2his.eastmoney.com/api/qt/stock/trends2/get?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f20&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f20&ut=fa5fd1943c7b386f172d6893dbfba10b&secid=" + secId + "&ndays=1&iscr=1&iscca=0";
@@ -68,25 +88,27 @@ public class SelectController {
      */
     //     127.0.0.1:8089/select/productionRatio
     @GetMapping("/productionRatio")
-    public boolean productionRatio(String yesterdayStr, String todayStr) {
-        List<ShareDayData> shareDateByDateStr = shareDayDataMapper.getShareDayData(yesterdayStr);
-        for (ShareDayData shareDate : shareDateByDateStr) {
+    public boolean productionRatio(Integer yesterdayStr, Integer todayStr) {
+        int i = ratioDataMapper.deleteByDayStr(todayStr.toString());
+        List<ShareDayData> shareDateByDateStr = shareDayDataMapper.getShareDayData(yesterdayStr.toString());
 
+        for (ShareDayData shareDate : shareDateByDateStr) {
             String biddingVolumeStr = getBiddingVolume(shareDate.getSecId());
             BigDecimal biddingVolume = new BigDecimal(biddingVolumeStr);
-
             RatioData ratioData = new RatioData();
-            ratioData.setId(UUID.randomUUID().toString());
-            ratioData.setDataTime(todayStr);
+            ratioData.setId(shareDate.getId());
+            ratioData.setDataTime(todayStr.toString());
             ratioData.setCreateTime(new Date());
             ratioData.setShareName(shareDate.getShareName());
             ratioData.setCode(shareDate.getCode());
             //'未竞成交比（未匹配量/竞价量）',
 //            ratioData.setUnsuccessfulBidding();
-            //'竞价分钟比(竞价十分钟的平均每一分钟交易量/过去五天平均每分钟交易量)'
-            ratioData.setBiddingYesterday(shareDate.getBiddingMinuteAverage().divide(shareDate.getFiveDayAverageMinutes(), 5, RoundingMode.FLOOR));
+            //'竞昨成交比(竞价量/昨日成交量)'
+            ratioData.setBiddingYesterday(biddingVolume.divide(shareDate.getTotalVolume(), 5, RoundingMode.FLOOR));
             //'竞价比(今日竞价量/昨日竞价量)'
-            ratioData.setBiddingMinter(biddingVolume.divide(shareDate.getBiddingVolume(), 5, RoundingMode.FLOOR));
+            ratioData.setBidding(biddingVolume.divide(shareDate.getBiddingVolume(), 5, RoundingMode.FLOOR));
+            //竞价分钟比(竞价十分钟的平均每一分钟交易量/过去五天平均每分钟交易量)'
+            ratioData.setBiddingMinter(biddingVolume.divide(new BigDecimal(10)).divide(shareDate.getFiveDayAverageMinutes(), 5, RoundingMode.FLOOR));
             //'爆量系数（竞价量/昨日分时最大量）'
             ratioData.setExplosiveQuantity(biddingVolume.divide(shareDate.getTodayMinterMax(), 5, RoundingMode.FLOOR));
             //'昨日上板系数（昨日最大分时/昨日成交量）'
@@ -100,6 +122,7 @@ public class SelectController {
             //竞年比（今天竞价量/一年最大量）
             ratioData.setYearBidding(biddingVolume.divide(shareDate.getOneYearMax(), 5, RoundingMode.FLOOR));
             ratioDataMapper.insert(ratioData);
+            log.info(ratioData.toString());
         }
         return true;
     }
@@ -125,7 +148,7 @@ public class SelectController {
     @GetMapping("getRatioDataListByDayStr")
     public List<RatioData> getRatioDataListByDayStr(String dayStr) {
         if (dayStr == null) {
-            dayStr = DateUtil.format(new Date(), "yyyymmdd");
+            dayStr = cn.hutool.core.date.DateUtil.format(new Date(), "yyyyMMdd");
         }
         return ratioDataMapper.getRatioDataByDateStr(dayStr);
     }
@@ -138,8 +161,10 @@ public class SelectController {
      * @return
      */
     @GetMapping("/productionBanShareDayDateByDayStr")
-    public int productionBanShareDayDateByDayStr(String dayStr) {
-        List<ShareDayData> shareDayDataList = saveBanData(dayStr);
+    public int productionBanShareDayDateByDayStr(Integer dayStr) {
+
+        int i = shareDayDataMapper.deleteByDataTime(dayStr.toString());
+        List<ShareDayData> shareDayDataList = saveBanData(dayStr.toString());
         boolean b = productionShareDayData(shareDayDataList);
         return shareDayDataList.size();
     }
@@ -154,7 +179,7 @@ public class SelectController {
     public List<ShareDayData> saveBanData(String dayStr) {
 
         if (dayStr == null) {
-            dayStr = DateUtil.format(new Date(), "yyyymmdd");
+            dayStr = cn.hutool.core.date.DateUtil.format(new Date(), "yyyyMMdd");
         }
         String url = "https://push2ex.eastmoney.com/getTopicZTPool?ut=7eea3edcaed734bea9cbfc24409ed989&dpt=wz.ztzt&Pageindex=0&pagesize=100&sort=fbt%3Aasc&date=" + dayStr + "&_=1670832933186";
         String body = HttpRequest.get(url).execute().body();
@@ -165,7 +190,7 @@ public class SelectController {
         List<ShareDayData> shareDayDataList = new ArrayList<>();
         for (Ban ban : bans) {
             ShareDayData shareDayData = new ShareDayData();
-            shareDayData.setId(UUID.randomUUID().toString());
+            shareDayData.setId(dayStr + "-" + ban.getC());
             shareDayData.setCode(ban.getC());
             shareDayData.setDataTime(dayStr);
             shareDayData.setCreateTime(new Date());
@@ -244,7 +269,7 @@ public class SelectController {
 
                         //当前时间是否是存在365中的时间
                         //检测时间       开始时间   结束时间
-                        return DateUtil.isIn(format.parse(date), new Date(), y);
+                        return cn.hutool.core.date.DateUtil.isIn(format.parse(date), new Date(), y);
                     } catch (ParseException e) {
                         e.printStackTrace();
                     }
@@ -307,6 +332,72 @@ public class SelectController {
         }
         return true;
     }
+
+    /**
+     * 更新比值结果 是否涨停
+     */
+    @GetMapping("/updateRatioResult")
+    public int updateRatioResult(Integer todayStr) {
+        List<RatioData> ratioDataByDateStr = ratioDataMapper.getRatioDataByDateStr(todayStr.toString());
+        String url = "https://push2ex.eastmoney.com/getTopicZTPool?ut=7eea3edcaed734bea9cbfc24409ed989&dpt=wz.ztzt&Pageindex=0&pagesize=100&sort=fbt%3Aasc&date=" + todayStr + "&_=1670832933186";
+        String body = HttpRequest.get(url).execute().body();
+        JSONObject jsonObject = JSON.parseObject(body);
+        JSONObject data = jsonObject.getJSONObject("data");
+        JSONArray pool = data.getJSONArray("pool");
+        List<Ban> bans = JSONObject.parseArray(pool.toString(), Ban.class);
+        List<String> collect = bans.stream().map(Ban::getC).collect(Collectors.toList());
+        Map<String, List<Ban>> listMap = bans.stream().collect(Collectors.groupingBy(Ban::getC));
+        int i = 0;
+        for (RatioData ratioData : ratioDataByDateStr) {
+            if (collect.contains(ratioData.getCode())) {
+                ratioData.setBan(true);
+                ratioData.setContinuityDay(listMap.get(ratioData.getCode()).get(0).getLbc());
+                log.info(ratioData.toString());
+                i++;
+            } else {
+                ratioData.setBan(false);
+            }
+            ratioDataMapper.updateById(ratioData);
+        }
+        return i;
+    }
+
+
+    @GetMapping("/exportRatioData")
+    public void exportRatioData(Integer[] dayStrs) throws IOException, InvalidFormatException {
+        QueryWrapper<RatioData> q = new QueryWrapper<>();
+        q.in("DATA_TIME", dayStrs);
+        q.orderByDesc("DATA_TIME");
+        List<RatioData> ratioData = ratioDataMapper.selectList(q);
+        export("temp/比值结果.xls", ratioData);
+    }
+
+    @Resource
+    HttpServletRequest request;
+    @Resource
+    HttpServletResponse httpResponse;
+
+
+    public void export(String filePath, List<RatioData> list) throws InvalidFormatException, IOException {
+        String exportFileName = DateUtil.format(new Date(), "yyyy-MM-dd");
+        InputStream resourceFile = FileUtil.getResourceFile(filePath);
+        XLSTransformer xlsTransformer = new XLSTransformer();
+        Map<Object, Object> beans = new HashMap<>();
+        beans.put("list", list);
+        Workbook workbook = xlsTransformer.transformXLS(resourceFile, beans);
+
+        String userAgent = request.getHeader("User_Agent");
+        if (StringUtils.isNotBlank(userAgent) && (userAgent.contains("MSIE") || userAgent.contains("Trident"))) {
+            exportFileName = URLEncoder.encode(exportFileName, "UTF-8");
+        } else {
+            exportFileName = new String(exportFileName.getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1);
+        }
+
+        httpResponse.setContentType("application/octet-stream");
+        httpResponse.setHeader("Content-Disposition", "attachment; filename=\"" + exportFileName + "\".xls");
+        workbook.write(httpResponse.getOutputStream());
+    }
+
 
     /**
      * 生成比值数据

@@ -6,7 +6,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class DataUtil {
+public class DateUtil {
 
     public static String toDate(String dateStr, String format) {
         SimpleDateFormat dateFormat = new SimpleDateFormat(format);

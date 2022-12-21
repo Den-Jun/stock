@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Date;
 
 
@@ -36,6 +37,16 @@ public class RatioData {
      */
     @TableField("DATA_TIME")
     private String dataTime;
+
+    /**
+     * 是否涨停
+     */
+    @TableField("BAN")
+    private boolean ban;
+    /**
+     * '连板天数'
+     */
+    private int continuityDay;
 
     /**
      * 未竞成交比（未匹配量/竞价量）
@@ -98,4 +109,6 @@ public class RatioData {
      */
     @TableField("YEAR_BIDDING")
     private BigDecimal yearBidding;
+
+
 }
