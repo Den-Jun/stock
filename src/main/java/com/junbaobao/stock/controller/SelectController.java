@@ -14,6 +14,8 @@ import com.junbaobao.stock.model.po.ShareDate;
 import com.junbaobao.stock.model.po.ShareDayData;
 import com.junbaobao.stock.util.DataUtil;
 import lombok.extern.slf4j.Slf4j;
+import com.sun.org.apache.regexp.internal.RE;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -102,6 +104,17 @@ public class SelectController {
         }
         return true;
     }
+
+    @GetMapping("/getStockRatioData")
+    public  Map<String,Object> getStockRatioData(String stockId){
+        Map<String,Object> map = new HashMap<String,Object>();
+        RatioData ratioData = new RatioData();
+        ratioData.setCode("1213");
+        ratioData.setShareName("1213");
+        map.put("ratioData",ratioData);
+        return map;
+    }
+
 
     /**
      * 获取比值数据
@@ -295,5 +308,74 @@ public class SelectController {
         }
         return true;
     }
+
+    /**
+     * 生成比值数据
+     *
+     * @param dateStr
+     * @return
+     */
+    //     127.0.0.1:8089/select/productionRatio
+    @GetMapping("/productionRatio")
+    public boolean productionRatio(String dateStr) {
+        List<ShareDate> shareDateByDateStr = shareDateMapper.getShareDateByDateStr(dateStr);
+        for (ShareDate shareDate : shareDateByDateStr) {
+            RatioData ratioData = new RatioData();
+            ratioData.setId(UUID.randomUUID().toString());
+            ratioData.setDataTime(dateStr);
+            ratioData.setCreateTime(new Date());
+            ratioData.setShareName(shareDate.getShareName());
+            ratioData.setCode(shareDate.getCode());
+            //'未竞成交比（未匹配量/竞价量）',
+//            ratioData.setUnsuccessfulBidding();
+            //'竞价分钟比(竞价十分钟的平均每一分钟交易量/过去五天平均每分钟交易量)'
+            ratioData.setBiddingYesterday(shareDate.getTodayBiddingMinuteAverage().divide(shareDate.getFiveDayAverageMinutes(), 5, BigDecimal.ROUND_FLOOR));
+            //'竞价比(今日竞价量/昨日竞价量)'
+            ratioData.setBiddingMinter(shareDate.getTodayBiddingVolume().divide(shareDate.getYesterdayBiddingVolume(), 5, BigDecimal.ROUND_FLOOR));
+            //'爆量系数（竞价量/昨日分时最大量）'
+            ratioData.setExplosiveQuantity(shareDate.getTodayBiddingVolume().divide(shareDate.getYesterdayMinterMax(), 5, BigDecimal.ROUND_FLOOR));
+            //'昨日上板系数（昨日最大分时/昨日成交量）'
+            ratioData.setYesterdayBan(shareDate.getYesterdayMinterMax().divide(shareDate.getYesterdayTotal(), 5, BigDecimal.ROUND_FLOOR));
+//            //'竞封比（竞价量/昨日封单量）'
+//            ratioData.setBiddingSealed();
+            //'昨前比（昨日成交量/前日成交量）'
+            ratioData.setYesterdayFront(shareDate.getYesterdayTotal().divide(shareDate.getBeforeYesterday(), 5, BigDecimal.ROUND_FLOOR));
+            // '昨竞成交比（昨天竞价量/昨天成交量）'
+            ratioData.setYesterdayBidding(shareDate.getYesterdayBiddingVolume().divide(shareDate.getYesterdayTotal(), 5, BigDecimal.ROUND_FLOOR));
+            ratioDataMapper.insert(ratioData);
+        }
+        return true;
+    }
+
+    /**
+     * 获取比值数据
+     *
+     * @param dayStr
+     * @return
+     */
+    //     127.0.0.1:8089/select/getRatioDataListByDayStr
+    @GetMapping("getRatioDataListByDayStr")
+    public List<RatioData> getRatioDataListByDayStr(String dayStr) {
+        if (dayStr == null) {
+            dayStr = DateUtil.format(new Date(), "yyyymmdd");
+        }
+        return ratioDataMapper.getRatioDataByDateStr(dayStr);
+    }
+
+    /**
+     * 获取比值数据
+     *
+     * @param dayStr
+     * @return
+     */
+    //     127.0.0.1:8089/select/getShareDateListByDayStr
+    @GetMapping("getShareDateListByDayStr")
+    public List<ShareDate> getShareDateListByDayStr(String dayStr) {
+        if (dayStr == null) {
+            dayStr = DateUtil.format(new Date(), "yyyymmdd");
+        }
+        return shareDateMapper.getShareDateByDateStr(dayStr);
+    }
+
 
 }

@@ -5,10 +5,7 @@ import com.junbaobao.stock.entity.NoticeWebsocketResp;
 import com.junbaobao.stock.entity.StockInfo;
 import com.junbaobao.stock.service.StockService1;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.List;
@@ -27,6 +24,10 @@ public class indexController {
     NoticeWebsocket noticeWebsocket;
 
 
+    @Resource
+    StockService1 stockService1;
+
+
     @GetMapping("/a")
     public void getStock(@RequestParam("cookie")String cookie) {
         //JSONArray stock = noticeWebsocket.getStockInfo("002362", "汉王科技", "1");
@@ -34,6 +35,11 @@ public class indexController {
 
         List<String> stockList = noticeWebsocket.getOptional(cookie);
         List<StockInfo> stockInfo = noticeWebsocket.getStockInfo(stockList);
+    }
+
+    @GetMapping("/add")
+    public void addStock(@RequestParam("stockcode") String stockcode, @RequestHeader("Cookie")String cookie){
+        stockService1.addStock(cookie,stockcode);
     }
 
 }

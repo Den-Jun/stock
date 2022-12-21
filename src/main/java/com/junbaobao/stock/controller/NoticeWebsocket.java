@@ -300,11 +300,11 @@ public class NoticeWebsocket {
                 stockInfo.setLastTimeMax(lastTimeMax + "");
 
                 stockInfo.setLastTotalDeal("昨日总成交量");
-                stockInfo.setThisNoDeal("8");
-                stockInfo.setThisOneDeal("9");
-                stockInfo.setThisBiddingTenAvgDeal("10");
-                stockInfo.setLastFiveAvgOneMinuteDeal("11");
-                stockInfo.setLastDeal("12");
+                stockInfo.setThisNoDeal("今天为成交量");
+                stockInfo.setThisOneDeal("今天第一分钟成交量");
+                stockInfo.setThisBiddingTenAvgDeal("竞价十分钟的平均每一分钟交易量");
+                stockInfo.setLastFiveAvgOneMinuteDeal("过去五天平均每一分钟交易量");
+                stockInfo.setLastDeal("前日交易量");
 
 
                 listStockInfo.add(stockInfo);

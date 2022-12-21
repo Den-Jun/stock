@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <script src="https://cdn.bootcss.com/jquery/3.4.0/jquery.min.js"></script>
+    <script src="https://cdn.bootcss.com/socket.io/2.2.0/socket.io.js"></script>
+    <!-- 引入vue -->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.1.8/vue.min.js"></script>
+
+
+    <!-- 引入http-vue-loader -->
+    <script src="https://unpkg.com/http-vue-loader"></script>
+    <!-- 这里使用了element ui框架 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+</head>
+<body>
+<table id="table" border="1px solid #ccc" cellspacing="0" cellpadding="0">
+    <thead>
+    <tr>
+        <th>序号</th>
+        <th>股票编码</th>
+        <th>股票名称</th>
+        <th>数据日期</th>
+        <th>未竞成交比（未匹配量/竞价量）</th>
+        <th>竞昨成交比(竞价量/昨日成交量)</th>
+        <th>竞价分钟比(竞价十分钟的平均每一分钟交易量/过去五天平均每分钟交易量)</th>
+        <th>竞价比(今日竞价量/昨日竞价量)</th>
+        <th>爆量系数（竞价量/昨日分时最大量）</th>
+        <th>昨日上板系数（昨日最大分时/昨日成交量）</th>
+        <th>竞封比（竞价量/昨日封单量）</th>
+        <th>昨前比（昨日成交量/前日成交量）</th>
+        <th>昨竞成交比（昨天竞价量/昨天成交量）</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>{{ration.id}}</td>
+        <td>{{ration.code}}</td>
+        <td>{{ration.shareName}}</td>
+        <td>{{ration.dataTime}}</td>
+        <td>{{ration.unsuccessfulBidding}}</td>
+        <td>{{ration.biddingYesterday}}</td>
+        <td>{{ration.biddingMinter}}</td>
+        <td>{{ration.bidding}}</td>
+        <td>{{ration.explosiveQuantity}}</td>
+        <td>{{ration.yesterdayBan}}</td>
+        <td>{{ration.biddingSealed}}</td>
+        <td>{{ration.yesterdayFront}}</td>
+        <td>{{ration.yesterdayBidding}}</td>
+    </tr>
+    <tr>
+
+    </tr>
+    </tbody>
+
+
+</table>
+
+
+</body>
+<script>
+    new Vue({
+        el: '#table',
+        data: {
+            rationTest: {
+                bidding: "1",
+                biddingMinter: "2",
+                biddingSealed: "3",
+                biddingYesterday: "4",
+                code: "1213",
+                createTime: "5",
+                dataTime: "6",
+                explosiveQuantity: "7",
+                id: "8",
+                shareName: "9",
+                unsuccessfulBidding: "10",
+                yesterdayBan: "11",
+                yesterdayBidding: "12",
+                yesterdayFront: "13"
+            },
+            ration: {}
+        },
+        mounted() {
+            console.log(this,"1")
+
+            this.getRation();
+        },
+        methods: {
+
+            getRation: function (stockId) {
+
+                var that = this;
+                $.ajax({
+                    url: "http://localhost:8089/select/getStockRatioData",
+                    data: {
+                        stockId: 121//参数
+                    },
+                    type: "GET",
+                    success: function (re) {
+                        that.ration = re.ratioData
+                    }
+                });
+                console.log(this,"2");
+            }
+        }
+    })
+
+</script>
+</html>
