@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.Date;
 
 
@@ -17,7 +16,7 @@ public class RatioData {
 
     @TableId(value = "id", type = IdType.ASSIGN_UUID)
     private String id;
-
+    private String secId;
     /**
      * '股票编码'
      */

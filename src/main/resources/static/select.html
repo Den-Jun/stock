@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -29,14 +28,17 @@
 </head>
 
 <body>
+<button type="button" id="bizhi">比值</button>
+<button type="button" id="shaixuan">筛选爆量</button>
 <table border="1" cellspacing="0">
     <tr>
-        <th >序号</th>
+        <th>序号</th>
         <th>股票编码</th>
         <th>股票名称</th>
         <th>数据日期</th>
         <th>连扳天数</th>
         <th>压力金额</th>
+        <th>成交金额</th>
         <th>竞价比(今日竞价量/昨日竞价量)</th>
         <th>竞昨成交比(竞价量/昨日成交量)</th>
         <th>爆量系数（竞价量/昨日分时最大量）</th>
@@ -47,30 +49,58 @@
 </table>
 <script>
     $(function() {
-        var list = [];
+        $('table tr#value').remove();
+    });
+    var list = [];
+    $('#bizhi').click(function () {
         $.ajax({
             url: "http://127.0.0.1:8089/select/getRatioDataListByDayStr",
-            // async: false, //实现ajax的同步请求，在没有返回值之前，同步请求将锁住浏览器，用户其它操作必须等待请求完成才可以执行。
+            async: false, //实现ajax的同步请求，在没有返回值之前，同步请求将锁住浏览器，用户其它操作必须等待请求完成才可以执行。
             //处理跨域问题
+
             dataType: "json",
-            success: function(res) {
+            method: "GET",
+
+            success: function (res) {
                 list = res;
-                console.log("res:"+res);
-            },
-            error: function(res) {
-                console.log("error:"+res);
+                console.log("res:" + res);
             }
         });
         console.log(list);
+        eachTableList(list);
+    });
+    $('#shaixuan').click(function () {
+        $.ajax({
+            url: "http://127.0.0.1:8089/select/baoLiang",
+            async: false, //实现ajax的同步请求，在没有返回值之前，同步请求将锁住浏览器，用户其它操作必须等待请求完成才可以执行。
+            //处理跨域问题
+            dataType: "json",
+            method: "GET",
+            success: function (res) {
+                list = res;
+                console.log("res:" + res);
+            }
+        });
+        console.log(list);
+        eachTableList(list);
+    });
+
+    function eachTableList(list) {
         // 展示获取过来的数据
-        $(list).each(function(i, ele) {
-            var $tr = $('<tr>' +
-                '<td>' + (i + 1) + '</td>' +
+        $('table tr#value').remove();
+        $(list).each(function (i, ele) {
+            var $trC = '<tr id="value">';
+            if (ele.ban === true) {
+                $trC= '<tr id="value" bgcolor="red">';
+            }
+            var  $tr = $($trC +
+                '<td ' + (i + 1) + '</td>' +
                 '<td class="name">' + ele.code + '</td>' +
                 '<td class="name">' + ele.shareName + '</td>' +
                 '<td class="name">' + ele.dataTime + '</td>' +
                 '<td class="name">' + ele.continuityDay + '</td>' +
-                '<td class="name">' + ele.pressureMoney + '</td>' +
+                '<td class="name">' + ele.pressureMoney + '亿' + '</td>' +
+                '<td class="name">' + ele.nowMoney + '亿' + '</td>' +
                 '<td class="name">' + ele.bidding + '</td>' +
                 '<td class="name">' + ele.biddingYesterday + '</td>' +
                 '<td class="name">' + ele.explosiveQuantity + '</td>' +
@@ -78,12 +108,13 @@
                 '<td class="name">' + ele.biddingSealed + '</td>' +
                 '<td class="name">' + ele.biddingMinter + '</td>' +
                 '<</tr>');
+
             $('table').append($tr);
-            console.log("888888888"+ele);
-            // console.log(i);
-            // console.log(list[i].title);
+
         });
-    });
+        console.log($('table'));
+
+    }
 </script>
 </body>
 

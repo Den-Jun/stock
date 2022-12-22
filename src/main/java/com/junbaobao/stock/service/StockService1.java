@@ -57,8 +57,6 @@ public class StockService1 {
      */
     public String addStock(String cookie, String stockId) {
         try {
-
-
             String url = "Https://t.10jqka.com.cn/newcircle/group/modifySelfStock/?op=add&stockcode=" + stockId;
             Map<String, String> headers = new HashMap<String, String>();
             headers.put("Cookie", cookie);

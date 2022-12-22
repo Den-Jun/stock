@@ -13,9 +13,9 @@ import com.junbaobao.stock.model.dto.Ban;
 import com.junbaobao.stock.model.po.RatioData;
 import com.junbaobao.stock.model.po.ShareDate;
 import com.junbaobao.stock.model.po.ShareDayData;
+import com.junbaobao.stock.model.vo.RatioDataVO;
 import com.junbaobao.stock.util.FileUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import net.sf.jxls.transformer.XLSTransformer;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -103,6 +103,7 @@ public class SelectController {
 
             ratioData.setId(shareDate.getId());
             ratioData.setDataTime(todayStr.toString());
+            ratioData.setSecId(shareDate.getSecId());
             ratioData.setCreateTime(new Date());
             ratioData.setContinuityDay(shareDate.getContinuityDay());
             ratioData.setShareName(shareDate.getShareName());
@@ -136,15 +137,16 @@ public class SelectController {
     }
 
     @GetMapping("/getStockRatioData")
-    public  Map<String,Object> getStockRatioData(String stockId){
-        Map<String,Object> map = new HashMap<String,Object>();
+    public Map<String, Object> getStockRatioData(String stockId) {
+        Map<String, Object> map = new HashMap<String, Object>();
         RatioData ratioData = new RatioData();
         ratioData.setCode("1213");
         ratioData.setShareName("1213");
-        map.put("ratioData",ratioData);
+        map.put("ratioData", ratioData);
         return map;
     }
 
+    ThreadLocal ban = new ThreadLocal();
 
     /**
      * 获取比值数据
@@ -154,11 +156,19 @@ public class SelectController {
      */
     //     127.0.0.1:8089/select/getRatioDataListByDayStr
     @GetMapping("getRatioDataListByDayStr")
-    public List<RatioData> getRatioDataListByDayStr(String dayStr) {
-        if (dayStr == null) {
+    public List<RatioDataVO> getRatioDataListByDayStr(String dayStr) {
+        httpResponse.setHeader("Access-Control-Allow-Origin", "*");
+        if (StringUtils.isBlank(dayStr)) {
             dayStr = cn.hutool.core.date.DateUtil.format(new Date(), "yyyyMMdd");
         }
-        return ratioDataMapper.getRatioDataByDateStr(dayStr);
+        List<Ban> ban = getBan(dayStr);
+        List<String> collect = ban.stream().map(Ban::getC).collect(Collectors.toList());
+        List<RatioDataVO> ratioDataByDateStr = ratioDataMapper.getRatioDataByDateStr(dayStr);
+        ratioDataByDateStr.parallelStream().forEach(ratioData -> {
+            ratioData.setNowMoney(getNowMoney(ratioData.getSecId()));
+            ratioData.setBan(collect.contains(ratioData.getCode()));
+        });
+        return ratioDataByDateStr;
     }
 
 
@@ -189,12 +199,7 @@ public class SelectController {
         if (dayStr == null) {
             dayStr = cn.hutool.core.date.DateUtil.format(new Date(), "yyyyMMdd");
         }
-        String url = "https://push2ex.eastmoney.com/getTopicZTPool?ut=7eea3edcaed734bea9cbfc24409ed989&dpt=wz.ztzt&Pageindex=0&pagesize=100&sort=fbt%3Aasc&date=" + dayStr + "&_=1670832933186";
-        String body = HttpRequest.get(url).execute().body();
-        JSONObject jsonObject = JSON.parseObject(body);
-        JSONObject data = jsonObject.getJSONObject("data");
-        JSONArray pool = data.getJSONArray("pool");
-        List<Ban> bans = JSONObject.parseArray(pool.toString(), Ban.class);
+        List<Ban> bans = getBan(dayStr);
         List<ShareDayData> shareDayDataList = new ArrayList<>();
         for (Ban ban : bans) {
             ShareDayData shareDayData = new ShareDayData();
@@ -209,6 +214,15 @@ public class SelectController {
             shareDayDataList.add(shareDayData);
         }
         return shareDayDataList;
+    }
+
+    public List<Ban> getBan(String dayStr) {
+        String url = "https://push2ex.eastmoney.com/getTopicZTPool?ut=7eea3edcaed734bea9cbfc24409ed989&dpt=wz.ztzt&Pageindex=0&pagesize=100&sort=fbt%3Aasc&date=" + dayStr + "&_=1670832933186";
+        String body = HttpRequest.get(url).execute().body();
+        JSONObject jsonObject = JSON.parseObject(body);
+        JSONObject data = jsonObject.getJSONObject("data");
+        JSONArray pool = data.getJSONArray("pool");
+        return JSONObject.parseArray(pool.toString(), Ban.class);
     }
 
     /**
@@ -346,7 +360,7 @@ public class SelectController {
      */
     @GetMapping("/updateRatioResult")
     public int updateRatioResult(Integer todayStr) {
-        List<RatioData> ratioDataByDateStr = ratioDataMapper.getRatioDataByDateStr(todayStr.toString());
+        List<RatioDataVO> ratioDataByDateStr = ratioDataMapper.getRatioDataByDateStr(todayStr.toString());
         String url = "https://push2ex.eastmoney.com/getTopicZTPool?ut=7eea3edcaed734bea9cbfc24409ed989&dpt=wz.ztzt&Pageindex=0&pagesize=100&sort=fbt%3Aasc&date=" + todayStr + "&_=1670832933186";
         String body = HttpRequest.get(url).execute().body();
         JSONObject jsonObject = JSON.parseObject(body);
@@ -406,52 +420,6 @@ public class SelectController {
         workbook.write(httpResponse.getOutputStream());
     }
 
-/**
- *   获取昨日涨停，查看今天换手
- *   压力4个亿  换手40%
- *   压力8个亿 换手50%
- *   压力10个亿 换手65%
- */
-
-
-    /**
-     * 生成比值数据
-     *
-     * @param dateStr
-     * @return
-     */
-    //     127.0.0.1:8089/select/productionRatio
-    @GetMapping("/productionRatio")
-    public boolean productionRatio(String dateStr) {
-        List<ShareDate> shareDateByDateStr = shareDateMapper.getShareDateByDateStr(dateStr);
-        for (ShareDate shareDate : shareDateByDateStr) {
-            RatioData ratioData = new RatioData();
-            ratioData.setId(UUID.randomUUID().toString());
-            ratioData.setDataTime(dateStr);
-            ratioData.setCreateTime(new Date());
-            ratioData.setShareName(shareDate.getShareName());
-            ratioData.setCode(shareDate.getCode());
-            //'未竞成交比（未匹配量/竞价量）',
-//            ratioData.setUnsuccessfulBidding();
-            //'竞价分钟比(竞价十分钟的平均每一分钟交易量/过去五天平均每分钟交易量)'
-            ratioData.setBiddingYesterday(shareDate.getTodayBiddingMinuteAverage().divide(shareDate.getFiveDayAverageMinutes(), 5, BigDecimal.ROUND_FLOOR));
-            //'竞价比(今日竞价量/昨日竞价量)'
-            ratioData.setBiddingMinter(shareDate.getTodayBiddingVolume().divide(shareDate.getYesterdayBiddingVolume(), 5, BigDecimal.ROUND_FLOOR));
-            //'爆量系数（竞价量/昨日分时最大量）'
-            ratioData.setExplosiveQuantity(shareDate.getTodayBiddingVolume().divide(shareDate.getYesterdayMinterMax(), 5, BigDecimal.ROUND_FLOOR));
-            //'昨日上板系数（昨日最大分时/昨日成交量）'
-            ratioData.setYesterdayBan(shareDate.getYesterdayMinterMax().divide(shareDate.getYesterdayTotal(), 5, BigDecimal.ROUND_FLOOR));
-//            //'竞封比（竞价量/昨日封单量）'
-//            ratioData.setBiddingSealed();
-            //'昨前比（昨日成交量/前日成交量）'
-            ratioData.setYesterdayFront(shareDate.getYesterdayTotal().divide(shareDate.getBeforeYesterday(), 5, BigDecimal.ROUND_FLOOR));
-            // '昨竞成交比（昨天竞价量/昨天成交量）'
-            ratioData.setYesterdayBidding(shareDate.getYesterdayBiddingVolume().divide(shareDate.getYesterdayTotal(), 5, BigDecimal.ROUND_FLOOR));
-            ratioDataMapper.insert(ratioData);
-        }
-        return true;
-    }
-
 
     /**
      * 获取比值数据
@@ -466,6 +434,74 @@ public class SelectController {
             dayStr = DateUtil.format(new Date(), "yyyymmdd");
         }
         return shareDateMapper.getShareDateByDateStr(dayStr);
+    }
+
+
+    /**
+     * 爆量股票添加自选
+     *
+     * @return
+     */
+    @GetMapping("/baoLiangOptionalAdd")
+    public int baoLiangOptionalAdd() {
+        List<RatioDataVO> ratioDataListByDayStr = baoLiang();
+        int i = 0;
+        for (RatioData ratioData : ratioDataListByDayStr) {
+            addStock(ratioData.getCode(), "__bid_n=18510bcab47dae07704207; FEID=v10-b4df2e5b9fd54759943fe8f9e29b6cae83cb1943; Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1670895553,1671371374; __xaf_fpstarttimer__=1671623450523; __xaf_ths__={\"data\":{\"0\":1,\"1\":43200,\"2\":60},\"id\":\"825ebe55-143a-41f5-b368-71ae0fd5a587\"}; __xaf_thstime__=1671623450618; FPTOKEN=cG8A4fiKA7fagF0k2gg5+FXWbG6q0xrhQJ48Ahf4uIdpTQo9KCq0PV67MtJiL5nC7tffgUkPZ7R+Gg0/1Aj0Bx9ela2OZ5tQTt/ptQRur6Zlsv5uq3G8vio+7SVipZlUb1pKTBj5VsNUcbhVJY6ouym9yuZFpTKtL34uFQBLA+OrGU3K3nxkoZKgGnx3aLzeOvvMWEhGT6RhUKmCo2kQ86/DtfCocQc3OfhxUFma5ZNj0IDKWXo/xOlf2vZAcDLoDRNnt5I5vXtvjC1AU3MNFK40zDwU0QOyanseos7vEw3rRrRVd8poN3vadxEH5uY/zip6Ow1dBb79X56Y2f/oGVnppohGCeOP/ARFE4RIX/szu/sYvu0vk9efVkgTR+7ODOjba9FXA/O4g/fIFNAjcA==|6fKHKE57Rj/GpY+3B0am4fwyt2AqSYZ6ZUpxl6NVS+I=|10|b3765305a4bbccfa41fd9f1fb2757b29; __xaf_fptokentimer__=1671623450670; log=; user=MDpBbHdheXNZZTo6Tm9uZTo1MDA6NTM4ODcyMDE5OjcsMTExMTExMTExMTEsNDA7NDQsMTEsNDA7NiwxLDQwOzUsMSw0MDsxLDEwMSw0MDsyLDEsNDA7MywxLDQwOzUsMSw0MDs4LDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAxLDQwOzEwMiwxLDQwOjI0Ojo6NTI4ODcyMDE5OjE2NzE2MjM0ODg6OjoxNTkyOTA4NzQwOjQwMDExMjowOjE1ZjVmZTFkNGJjYWRiZDY3ZTUyMzY4MTMxZDA5MTQ3YTpkZWZhdWx0XzQ6MQ%3D%3D; userid=528872019; u_name=AlwaysYe; escapename=AlwaysYe; ticket=402790639bbb27ca45d6124eade12c72; user_status=0; utk=08a120674dca405954881a9707e480f8; __utma=156575163.691551267.1671624523.1671624523.1671624523.1; __utmc=156575163; __utmz=156575163.1671624523.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __utmb=156575163.1.10.1671624523; Hm_lpvt_78c58f01938e4d85eaf619eae71b4ed1=1671624532; historystock=002149; spversion=20130314; v=A2WShBNGasYmRo4aLg879iQgdCqaohm_Y1f97mdLIxerwItUL_IpBPOmDUn0");
+            i++;
+        }
+        return i;
+    }
+
+    @GetMapping("/baoLiang")
+    public List<RatioDataVO> baoLiang() {
+        httpResponse.setHeader("Access-Control-Allow-Origin", "*");
+        List<RatioDataVO> ratioDataListByDayStr = getRatioDataListByDayStr(null);
+        List<RatioDataVO> re = new ArrayList<>();
+        for (RatioDataVO ratioData : ratioDataListByDayStr) {
+            if (
+                    ratioData.getBiddingYesterday().compareTo(new BigDecimal("0.1")) > 0 //竞昨天大于0.1
+                            && ratioData.getExplosiveQuantity().compareTo(new BigDecimal("0.5")) > 0//爆量大于0.5
+                            && ratioData.getBiddingYesterday().compareTo(new BigDecimal("0.03")) > 0 //竞年大于0.03
+//                            && ratioData.getBiddingSealed().compareTo(new BigDecimal("0.15")) > 0  //竞封大于0.15
+//                            && ratioData.getBiddingMinter().compareTo(new BigDecimal("1")) > 0  //竞价分钟五日比大于1
+            ) {
+                re.add(ratioData);
+            }
+        }
+        return re;
+    }
+
+    /**
+     * 添加自选
+     */
+    public void addStock(String cookie, String stockId) {
+        String url = "Https://t.10jqka.com.cn/newcircle/group/modifySelfStock/?op=add&stockcode=" + stockId;
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("Cookie", cookie);
+        String body = HttpRequest.get(url).addHeaders(headers).execute().body();
+        log.info(body);
+    }
+
+
+    /**
+     * 获取成交额
+     *
+     * @param secId
+     * @return
+     */
+    public BigDecimal getNowMoney(String secId) {
+        //获取以往的走势
+        String pastUrl = "https://push2his.eastmoney.com/api/qt/stock/kline/get?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&beg=0&end=20500101&ut=fa5fd1943c7b386f172d6893dbfba10b&rtntype=6&secid=" + secId + "&klt=101&fqt=1";
+        String body1 = HttpRequest.get(pastUrl).execute().body();
+        JSONObject pastJsonObject = JSON.parseObject(body1);
+        JSONObject pastData1 = pastJsonObject.getJSONObject("data");
+        JSONArray klinesList = pastData1.getJSONArray("klines");
+        String today = klinesList.get(klinesList.size() - 1).toString();
+        String[] todaySp = today.split(",");
+        String xianJia = todaySp[2];
+        String chengJiaoLiang = todaySp[5];
+        return new BigDecimal(xianJia).multiply(new BigDecimal(chengJiaoLiang)).divide(new BigDecimal("1000000"), 2, BigDecimal.ROUND_FLOOR);
     }
 
 
