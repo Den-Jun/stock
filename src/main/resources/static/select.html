@@ -48,11 +48,22 @@
     </tr>
 </table>
 <script>
-    $(function() {
+
+    $(function () {
         $('table tr#value').remove();
     });
+    var interval;
     var list = [];
     $('#bizhi').click(function () {
+        clearInterval(interval);
+        interval = setInterval(A, 1500);
+    });
+    $('#shaixuan').click(function () {
+        clearInterval(interval);
+        interval = setInterval(B, 1500);
+    });
+
+    function A() {
         $.ajax({
             url: "http://127.0.0.1:8089/select/getRatioDataListByDayStr",
             async: false, //实现ajax的同步请求，在没有返回值之前，同步请求将锁住浏览器，用户其它操作必须等待请求完成才可以执行。
@@ -68,8 +79,9 @@
         });
         console.log(list);
         eachTableList(list);
-    });
-    $('#shaixuan').click(function () {
+    }
+
+    function B() {
         $.ajax({
             url: "http://127.0.0.1:8089/select/baoLiang",
             async: false, //实现ajax的同步请求，在没有返回值之前，同步请求将锁住浏览器，用户其它操作必须等待请求完成才可以执行。
@@ -83,7 +95,8 @@
         });
         console.log(list);
         eachTableList(list);
-    });
+    }
+
 
     function eachTableList(list) {
         // 展示获取过来的数据
@@ -91,9 +104,9 @@
         $(list).each(function (i, ele) {
             var $trC = '<tr id="value">';
             if (ele.ban === true) {
-                $trC= '<tr id="value" bgcolor="red">';
+                $trC = '<tr id="value" bgcolor="red">';
             }
-            var  $tr = $($trC +
+            var $tr = $($trC +
                 '<td ' + (i + 1) + '</td>' +
                 '<td class="name">' + ele.code + '</td>' +
                 '<td class="name">' + ele.shareName + '</td>' +
