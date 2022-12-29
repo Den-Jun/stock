@@ -73,12 +73,17 @@ public class SelectController {
      */
     @GetMapping("/getBiddingVolume")
     public String getBiddingVolume(String secId) {
-        String thisUrl = "https://push2his.eastmoney.com/api/qt/stock/trends2/get?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f20&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f20&ut=fa5fd1943c7b386f172d6893dbfba10b&secid=" + secId + "&ndays=1&iscr=1&iscca=0";
-        String body = HttpRequest.get(thisUrl).execute().body();
-        JSONObject jsonObject = JSON.parseObject(body);
-        JSONObject data = jsonObject.getJSONObject("data");
-        JSONArray trendsList = data.getJSONArray("trends");
-        return trendsList.get(11).toString().split(",")[5] + "-" + trendsList.get(11).toString().split(",")[1];
+        try {
+            String thisUrl = "https://push2his.eastmoney.com/api/qt/stock/trends2/get?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f20&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f20&ut=fa5fd1943c7b386f172d6893dbfba10b&secid=" + secId + "&ndays=1&iscr=1&iscca=0";
+            String body = HttpRequest.get(thisUrl).execute().body();
+            JSONObject jsonObject = JSON.parseObject(body);
+            JSONObject data = jsonObject.getJSONObject("data");
+            JSONArray trendsList = data.getJSONArray("trends");
+            return trendsList.get(11).toString().split(",")[5] + "-" + trendsList.get(11).toString().split(",")[1];
+        } catch (Exception e) {
+            log.error("获取分时走势错误:" + secId);
+            return null;
+        }
     }
 
     /**
@@ -146,7 +151,6 @@ public class SelectController {
         return map;
     }
 
-    ThreadLocal ban = new ThreadLocal();
 
     /**
      * 获取比值数据
@@ -197,7 +201,7 @@ public class SelectController {
     public List<ShareDayData> saveBanData(String dayStr) {
 
         if (dayStr == null) {
-            dayStr = cn.hutool.core.date.DateUtil.format(new Date(), "yyyyMMdd");
+            dayStr = DateUtil.format(new Date(), "yyyyMMdd");
         }
         List<Ban> bans = getBan(dayStr);
         List<ShareDayData> shareDayDataList = new ArrayList<>();
@@ -348,6 +352,7 @@ public class SelectController {
                 shareDayDataMapper.updateById(shareDayData);
                 log.info(shareDayData.toString());
             } catch (Exception e) {
+                shareDayDataMapper.deleteById(shareDayData.getId());
                 System.out.println(" 股票ID: " + code + " 股票名称: " + stockName + "报错;e:" + e.getMessage());
                 e.printStackTrace();
             }
@@ -444,10 +449,11 @@ public class SelectController {
      */
     @GetMapping("/baoLiangOptionalAdd")
     public int baoLiangOptionalAdd() {
+        String co = "v=A9bHpaa8qQ2kc52pShOoZk1WJ43ddxqxbLtOFUA_wrlUA3g5qAdqwTxLniET; Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1670893758,1672230984; __bid_n=1850908397e32802cc4207; FEID=v10-42ce2c89652de70a093242fa17b6df01f7ed6511; __xaf_fpstarttimer__=1672231050911; __xaf_thstime__=1672231051315; FPTOKEN=cDKhKXn0aVBX2gtiXtDUahP23Uty6EGH2oFF2EVNRlUQ89mwCxdUKDbWM6Bf8QZ7DZYxyL0yJrkmreaszpMdiC2ASsoM+oyUp/lLofp05tKMtxPbpDyxvFrHRfUUxiEQns7ItmYzbl7Navv2Oein7TgBrp8ye6yIG9IXYkwHLOGKUJhxmomhBQGr7RrcAYMvTo8TJ9nHi7h3VJXBvybrnlZGemQXwxjJ2Wh…156575163.2.10.1672231052; __utmc=156575163; __utmt=1; user=MDpBbHdheXNZZTo6Tm9uZTo1MDA6NTM4ODcyMDE5OjcsMTExMTExMTExMTEsNDA7NDQsMTEsNDA7NiwxLDQwOzUsMSw0MDsxLDEwMSw0MDsyLDEsNDA7MywxLDQwOzUsMSw0MDs4LDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAxLDQwOzEwMiwxLDQwOjI0Ojo6NTI4ODcyMDE5OjE2NzIyMzE2MTI6OjoxNTkyOTA4NzQwOjQ4Njc4ODowOjFlOGFmOTE4NDlkNmRhMzY3ZjFkNTk2Yzc5MzQyMzk1MDpkZWZhdWx0XzQ6MQ%3D%3D; userid=528872019; u_name=AlwaysYe; escapename=AlwaysYe; ticket=e5e0570ecc09d4961739c56eff29a289; utk=907d0faa52ca5a52733ec31b820a6079";
         List<RatioDataVO> ratioDataListByDayStr = baoLiang();
         int i = 0;
         for (RatioData ratioData : ratioDataListByDayStr) {
-            addStock(ratioData.getCode(), "__bid_n=18510bcab47dae07704207; FEID=v10-b4df2e5b9fd54759943fe8f9e29b6cae83cb1943; Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1670895553,1671371374; __xaf_fpstarttimer__=1671623450523; __xaf_ths__={\"data\":{\"0\":1,\"1\":43200,\"2\":60},\"id\":\"825ebe55-143a-41f5-b368-71ae0fd5a587\"}; __xaf_thstime__=1671623450618; FPTOKEN=cG8A4fiKA7fagF0k2gg5+FXWbG6q0xrhQJ48Ahf4uIdpTQo9KCq0PV67MtJiL5nC7tffgUkPZ7R+Gg0/1Aj0Bx9ela2OZ5tQTt/ptQRur6Zlsv5uq3G8vio+7SVipZlUb1pKTBj5VsNUcbhVJY6ouym9yuZFpTKtL34uFQBLA+OrGU3K3nxkoZKgGnx3aLzeOvvMWEhGT6RhUKmCo2kQ86/DtfCocQc3OfhxUFma5ZNj0IDKWXo/xOlf2vZAcDLoDRNnt5I5vXtvjC1AU3MNFK40zDwU0QOyanseos7vEw3rRrRVd8poN3vadxEH5uY/zip6Ow1dBb79X56Y2f/oGVnppohGCeOP/ARFE4RIX/szu/sYvu0vk9efVkgTR+7ODOjba9FXA/O4g/fIFNAjcA==|6fKHKE57Rj/GpY+3B0am4fwyt2AqSYZ6ZUpxl6NVS+I=|10|b3765305a4bbccfa41fd9f1fb2757b29; __xaf_fptokentimer__=1671623450670; log=; user=MDpBbHdheXNZZTo6Tm9uZTo1MDA6NTM4ODcyMDE5OjcsMTExMTExMTExMTEsNDA7NDQsMTEsNDA7NiwxLDQwOzUsMSw0MDsxLDEwMSw0MDsyLDEsNDA7MywxLDQwOzUsMSw0MDs4LDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAxLDQwOzEwMiwxLDQwOjI0Ojo6NTI4ODcyMDE5OjE2NzE2MjM0ODg6OjoxNTkyOTA4NzQwOjQwMDExMjowOjE1ZjVmZTFkNGJjYWRiZDY3ZTUyMzY4MTMxZDA5MTQ3YTpkZWZhdWx0XzQ6MQ%3D%3D; userid=528872019; u_name=AlwaysYe; escapename=AlwaysYe; ticket=402790639bbb27ca45d6124eade12c72; user_status=0; utk=08a120674dca405954881a9707e480f8; __utma=156575163.691551267.1671624523.1671624523.1671624523.1; __utmc=156575163; __utmz=156575163.1671624523.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __utmb=156575163.1.10.1671624523; Hm_lpvt_78c58f01938e4d85eaf619eae71b4ed1=1671624532; historystock=002149; spversion=20130314; v=A2WShBNGasYmRo4aLg879iQgdCqaohm_Y1f97mdLIxerwItUL_IpBPOmDUn0");
+            addStock(co, ratioData.getCode());
             i++;
         }
         return i;
@@ -463,6 +469,7 @@ public class SelectController {
                     ratioData.getBiddingYesterday().compareTo(new BigDecimal("0.1")) > 0 //竞昨天大于0.1
                             && ratioData.getExplosiveQuantity().compareTo(new BigDecimal("0.5")) > 0//爆量大于0.5
                             && ratioData.getBiddingYesterday().compareTo(new BigDecimal("0.03")) > 0 //竞年大于0.03
+//                    && ratioData.getYesterdayBidding().compareTo(new BigDecimal("1")) > 0
 //                            && ratioData.getBiddingSealed().compareTo(new BigDecimal("0.15")) > 0  //竞封大于0.15
 //                            && ratioData.getBiddingMinter().compareTo(new BigDecimal("1")) > 0  //竞价分钟五日比大于1
             ) {

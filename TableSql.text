@@ -88,3 +88,18 @@ create table SHARE_DAY_DATA
 );
 
 alter table SHARE_DAY_DATA comment 'SHARE_DAY_DATA';
+
+
+
+drop table if exists JY_DATE;
+
+/*==============================================================*/
+/* Table: JY_DATE                                        */
+/*==============================================================*/
+create table JY_DATE
+(
+   JYBZ                   int comment '是否交易',
+   jyrq            varchar(40) comment '日期时间'
+);
+
+alter table JY_DATE comment '交易日期';

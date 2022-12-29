@@ -14,7 +14,7 @@ import java.util.List;
 public interface RatioDataMapper extends BaseMapper<RatioData> {
 
 
-    @Select("select * from RATIO_DATA where data_time = #{dateStr} order by EXPLOSIVE_QUANTITY desc,YEAR_BIDDING desc ,BIDDING_SEALED desc")
+    @Select("select * from RATIO_DATA where data_time = #{dateStr} order by continuity_Day desc,pressure_Money desc ,EXPLOSIVE_QUANTITY desc")
     List<RatioDataVO> getRatioDataByDateStr(@Param("dateStr") String dateStr);
 
     @Delete("delete from RATIO_DATA where data_time = #{dateStr}")

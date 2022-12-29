@@ -30,6 +30,9 @@
 <body>
 <button type="button" id="bizhi">比值</button>
 <button type="button" id="shaixuan">筛选爆量</button>
+<button type="button" id="zhangting">涨停</button>
+<button type="button" id="zuorifangliang">昨日放量</button>
+
 <table border="1" cellspacing="0">
     <tr>
         <th>序号</th>
@@ -39,14 +42,17 @@
         <th>连扳天数</th>
         <th>压力金额</th>
         <th>成交金额</th>
+        <th>成交比</th>
         <th>竞价比(今日竞价量/昨日竞价量)</th>
         <th>竞昨成交比(竞价量/昨日成交量)</th>
         <th>爆量系数（竞价量/昨日分时最大量）</th>
         <th>竞年比（今天竞价量/一年最大量）</th>
         <th>竞封比（竞价量/昨日封单量）</th>
         <th>竞价分钟比(竞价十分钟的平均每一分钟交易量/过去五天平均每分钟交易量)</th>
+        <th>昨前比</th>
     </tr>
 </table>
+
 <script>
 
     $(function () {
@@ -61,6 +67,14 @@
     $('#shaixuan').click(function () {
         clearInterval(interval);
         interval = setInterval(B, 1500);
+    });
+    $('#zhangting').click(function () {
+        clearInterval(interval);
+        interval = setInterval(c, 1500);
+    });
+    $('#zuorifangliang').click(function () {
+        clearInterval(interval);
+        interval = setInterval(d, 1500);
     });
 
     function A() {
@@ -97,6 +111,56 @@
         eachTableList(list);
     }
 
+    function c() {
+        $.ajax({
+            url: "http://127.0.0.1:8089/select/getRatioDataListByDayStr",
+            async: false, //实现ajax的同步请求，在没有返回值之前，同步请求将锁住浏览器，用户其它操作必须等待请求完成才可以执行。
+            //处理跨域问题
+
+            dataType: "json",
+            method: "GET",
+
+            success: function (res) {
+                list = res;
+                console.log("res:" + res);
+            }
+        });
+        console.log(list);
+
+        var newArr = [];
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].ban === true) {
+                newArr[newArr.length] = list[i];
+            }
+        }
+        eachTableList(newArr);
+    }
+
+    function d() {
+        $.ajax({
+            url: "http://127.0.0.1:8089/select/getRatioDataListByDayStr",
+            async: false, //实现ajax的同步请求，在没有返回值之前，同步请求将锁住浏览器，用户其它操作必须等待请求完成才可以执行。
+            //处理跨域问题
+
+            dataType: "json",
+            method: "GET",
+
+            success: function (res) {
+                list = res;
+                console.log("res:" + res);
+            }
+        });
+        console.log(list);
+
+        var newArr = [];
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].yesterdayFront > 1) {
+                newArr[newArr.length] = list[i];
+            }
+        }
+        eachTableList(newArr);
+    }
+
 
     function eachTableList(list) {
         // 展示获取过来的数据
@@ -106,20 +170,24 @@
             if (ele.ban === true) {
                 $trC = '<tr id="value" bgcolor="red">';
             }
+            var now = ele.nowMoney / ele.pressureMoney;
+            now = Math.round(now * 100) / 100;
             var $tr = $($trC +
-                '<td ' + (i + 1) + '</td>' +
+                '<td class="name">' + (i + 1) + '</td>' +
                 '<td class="name">' + ele.code + '</td>' +
                 '<td class="name">' + ele.shareName + '</td>' +
                 '<td class="name">' + ele.dataTime + '</td>' +
                 '<td class="name">' + ele.continuityDay + '</td>' +
                 '<td class="name">' + ele.pressureMoney + '亿' + '</td>' +
                 '<td class="name">' + ele.nowMoney + '亿' + '</td>' +
+                '<td class="name">' + now + '</td>' +
                 '<td class="name">' + ele.bidding + '</td>' +
                 '<td class="name">' + ele.biddingYesterday + '</td>' +
                 '<td class="name">' + ele.explosiveQuantity + '</td>' +
                 '<td class="name">' + ele.yearBidding + '</td>' +
                 '<td class="name">' + ele.biddingSealed + '</td>' +
                 '<td class="name">' + ele.biddingMinter + '</td>' +
+                '<td class="name">' + ele.yesterdayFront + '</td>' +
                 '<</tr>');
 
             $('table').append($tr);
