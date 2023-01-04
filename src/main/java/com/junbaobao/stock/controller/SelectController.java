@@ -106,7 +106,7 @@ public class SelectController {
             BigDecimal biddingVolume = new BigDecimal(biddingVolumeStr);
             RatioData ratioData = new RatioData();
 
-            ratioData.setId(shareDate.getId());
+            ratioData.setId(todayStr + "-" + shareDate.getCode());
             ratioData.setDataTime(todayStr.toString());
             ratioData.setSecId(shareDate.getSecId());
             ratioData.setCreateTime(new Date());
@@ -162,6 +162,10 @@ public class SelectController {
     @GetMapping("getRatioDataListByDayStr")
     public List<RatioDataVO> getRatioDataListByDayStr(String dayStr) {
         httpResponse.setHeader("Access-Control-Allow-Origin", "*");
+        return getRatioDataListByDayStr1(dayStr);
+    }
+
+    public List<RatioDataVO> getRatioDataListByDayStr1(String dayStr) {
         if (StringUtils.isBlank(dayStr)) {
             dayStr = cn.hutool.core.date.DateUtil.format(new Date(), "yyyyMMdd");
         }
@@ -449,11 +453,13 @@ public class SelectController {
      */
     @GetMapping("/baoLiangOptionalAdd")
     public int baoLiangOptionalAdd() {
-        String co = "v=A9bHpaa8qQ2kc52pShOoZk1WJ43ddxqxbLtOFUA_wrlUA3g5qAdqwTxLniET; Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1670893758,1672230984; __bid_n=1850908397e32802cc4207; FEID=v10-42ce2c89652de70a093242fa17b6df01f7ed6511; __xaf_fpstarttimer__=1672231050911; __xaf_thstime__=1672231051315; FPTOKEN=cDKhKXn0aVBX2gtiXtDUahP23Uty6EGH2oFF2EVNRlUQ89mwCxdUKDbWM6Bf8QZ7DZYxyL0yJrkmreaszpMdiC2ASsoM+oyUp/lLofp05tKMtxPbpDyxvFrHRfUUxiEQns7ItmYzbl7Navv2Oein7TgBrp8ye6yIG9IXYkwHLOGKUJhxmomhBQGr7RrcAYMvTo8TJ9nHi7h3VJXBvybrnlZGemQXwxjJ2Wh…156575163.2.10.1672231052; __utmc=156575163; __utmt=1; user=MDpBbHdheXNZZTo6Tm9uZTo1MDA6NTM4ODcyMDE5OjcsMTExMTExMTExMTEsNDA7NDQsMTEsNDA7NiwxLDQwOzUsMSw0MDsxLDEwMSw0MDsyLDEsNDA7MywxLDQwOzUsMSw0MDs4LDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAxLDQwOzEwMiwxLDQwOjI0Ojo6NTI4ODcyMDE5OjE2NzIyMzE2MTI6OjoxNTkyOTA4NzQwOjQ4Njc4ODowOjFlOGFmOTE4NDlkNmRhMzY3ZjFkNTk2Yzc5MzQyMzk1MDpkZWZhdWx0XzQ6MQ%3D%3D; userid=528872019; u_name=AlwaysYe; escapename=AlwaysYe; ticket=e5e0570ecc09d4961739c56eff29a289; utk=907d0faa52ca5a52733ec31b820a6079";
-        List<RatioDataVO> ratioDataListByDayStr = baoLiang();
+        String cookie_dj = "Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1643185552; user_status=0; historystock=000001; spversion=20130314; log=; user=MDpteF81NTgzMjk3Mzc6Ok5vbmU6NTAwOjU2ODMyOTczNzo3LDExMTExMTExMTExLDQwOzQ0LDExLDQwOzYsMSw0MDs1LDEsNDA7MSwxMDEsNDA7MiwxLDQwOzMsMSw0MDs1LDEsNDA7OCwwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMSw0MDsxMDIsMSw0MDoxNjo6OjU1ODMyOTczNzoxNjcyMjg1OTY3Ojo6MTYwODYwMzAwMDoyNjc4NDAwOjA6MTZlZTc1YmY0MjYwNWJhZDdjNDJlMGFhYTI2MDFjZWQ5OmRlZmF1bHRfNDow; userid=558329737; u_name=mx_558329737; escapename=mx_558329737; ticket=b1844b025855dfe07a6161b3599a1e20; utk=5f278ab67082b0903612ce04a823291c; v=A_68BffnEQSPO0Ug12SrNdx0Tx9FP8K5VAF2nagHasE8S5CBEM8SySSTxq57";
+        String co = "__bid_n=18510bcab47dae07704207; FEID=v10-b4df2e5b9fd54759943fe8f9e29b6cae83cb1943; Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1670895553,1671371374; __xaf_fpstarttimer__=1671623450523; __xaf_thstime__=1671623450618; FPTOKEN=cG8A4fiKA7fagF0k2gg5+FXWbG6q0xrhQJ48Ahf4uIdpTQo9KCq0PV67MtJiL5nC7tffgUkPZ7R+Gg0/1Aj0Bx9ela2OZ5tQTt/ptQRur6Zlsv5uq3G8vio+7SVipZlUb1pKTBj5VsNUcbhVJY6ouym9yuZFpTKtL34uFQBLA+OrGU3K3nxkoZKgGnx3aLzeOvvMWEhGT6RhUKmCo2kQ86/DtfCocQc3OfhxUFma5ZNj0IDKWXo/xOlf2vZAcDLoDRNnt5I5vXtvjC1AU3MNFK40zDwU0QOyanseos7vEw3rRrRVd8poN3vadxEH5uY/zip6Ow1dBb79X56Y2f/oGVnppohGCeOP/ARFE4RIX/szu/sYvu0vk9efVkgTR+7ODOjba9FXA/O4g/fIFNAjcA==|6fKHKE57Rj/GpY+3B0am4fwyt2AqSYZ6ZUpxl6NVS+I=|10|b3765305a4bbccfa41fd9f1fb2757b29; __xaf_fptokentimer__=1671623450670; Hm_lvt_da7579fd91e2c6fa5aeb9d1620a9b333=1671623570; __utma=156575163.691551267.1671624523.1671624523.1671624523.1; __utmc=156575163; __utmz=156575163.1671624523.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); historystock=002149; spversion=20130314; log=; user_status=0; Hm_lpvt_da7579fd91e2c6fa5aeb9d1620a9b333=1672796582; Hm_lpvt_78c58f01938e4d85eaf619eae71b4ed1=1672796582; user=MDpBbHdheXNZZTo6Tm9uZTo1MDA6NTM4ODcyMDE5OjExMCwwMDAwMDAwMTAwLDQ7MTE5LDAwMDAwMDAwMTEwMDAwMCw0OzcsMTExMTExMTExMTEsNDA7NDQsMTEsNDA7NiwxLDQwOzUsMSw0MDsxLDEwMSw0MDsyLDEsNDA7MywxLDQwOzgsMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDEsNDA7MTAyLDEsNDA6MjQ6Ojo1Mjg4NzIwMTk6MTY3Mjc5NjY2NDo6OjE1OTI5MDg3NDA6NTQ5MzY6MDoxZWFkYzdhMTc4YjE2ZjI3YzdlMDczMWM3YTRhMGY3NWE6ZGVmYXVsdF80OjE%3D; userid=528872019; u_name=AlwaysYe; escapename=AlwaysYe; ticket=4ab5f9376bf0c5e08780a9a82cba652c; utk=96c33c7be31e2588071439495c2974a0; v=A0ax-eQDWeVbOw0BuSfI40utlzfNp4phXOm-xTBvMmlEM-jpmDfacSx7DtYD";
+        List<RatioDataVO> ratioDataListByDayStr = baoLiang1();
         int i = 0;
         for (RatioData ratioData : ratioDataListByDayStr) {
             addStock(co, ratioData.getCode());
+            addStock(cookie_dj, ratioData.getCode());
             i++;
         }
         return i;
@@ -461,14 +467,20 @@ public class SelectController {
 
     @GetMapping("/baoLiang")
     public List<RatioDataVO> baoLiang() {
-        httpResponse.setHeader("Access-Control-Allow-Origin", "*");
-        List<RatioDataVO> ratioDataListByDayStr = getRatioDataListByDayStr(null);
+        if (httpResponse != null) {
+            httpResponse.setHeader("Access-Control-Allow-Origin", "*");
+        }
+        return baoLiang1();
+    }
+
+    public List<RatioDataVO> baoLiang1() {
+        List<RatioDataVO> ratioDataListByDayStr = getRatioDataListByDayStr1(null);
         List<RatioDataVO> re = new ArrayList<>();
         for (RatioDataVO ratioData : ratioDataListByDayStr) {
             if (
-                    ratioData.getBiddingYesterday().compareTo(new BigDecimal("0.1")) > 0 //竞昨天大于0.1
-                            && ratioData.getExplosiveQuantity().compareTo(new BigDecimal("0.5")) > 0//爆量大于0.5
-                            && ratioData.getBiddingYesterday().compareTo(new BigDecimal("0.03")) > 0 //竞年大于0.03
+//                    ratioData.getBiddingYesterday().compareTo(new BigDecimal("0.1")) > 0 &&//竞昨天大于0.1
+                    ratioData.getExplosiveQuantity().compareTo(new BigDecimal("0.5")) > 0//爆量大于0.5
+                            && ratioData.getYearBidding().compareTo(new BigDecimal("0.03")) > 0 //竞年大于0.03
 //                    && ratioData.getYesterdayBidding().compareTo(new BigDecimal("1")) > 0
 //                            && ratioData.getBiddingSealed().compareTo(new BigDecimal("0.15")) > 0  //竞封大于0.15
 //                            && ratioData.getBiddingMinter().compareTo(new BigDecimal("1")) > 0  //竞价分钟五日比大于1
@@ -483,11 +495,18 @@ public class SelectController {
      * 添加自选
      */
     public void addStock(String cookie, String stockId) {
-        String url = "Https://t.10jqka.com.cn/newcircle/group/modifySelfStock/?op=add&stockcode=" + stockId;
-        Map<String, String> headers = new HashMap<String, String>();
-        headers.put("Cookie", cookie);
-        String body = HttpRequest.get(url).addHeaders(headers).execute().body();
-        log.info(body);
+        try {
+            String url = "Https://t.10jqka.com.cn/newcircle/group/modifySelfStock/?op=add&stockcode=" + stockId;
+            Map<String, String> headers = new HashMap<String, String>();
+            headers.put("Cookie", cookie);
+            String body = HttpRequest.get(url).addHeaders(headers).execute().body();
+            if(body.contains("error")){
+                throw new Exception();
+            }
+        } catch (Exception e) {
+            log.error("添加自选失败：" + stockId + ";  cookie:" + cookie);
+        }
+        log.info("666666666添加自选成功：" + stockId + ";  cookie:" + cookie);
     }
 
 
