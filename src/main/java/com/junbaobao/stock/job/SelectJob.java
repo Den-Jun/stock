@@ -57,5 +57,13 @@ public class SelectJob {
         selectController.baoLiangOptionalAdd();
     }
 
+    @Scheduled(cron = "1 23 18 * * *")
+    public void zhangTingFuPanJob() {
+        int jybz = jyDateMapper.jybz(DateUtil.toDate(new Date(), "yyyy-MM-dd"));
+        if (jybz == 0) {
+            return;
+        }
+        selectController.zhangTingFuPan();
+    }
 
 }

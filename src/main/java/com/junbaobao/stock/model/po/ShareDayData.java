@@ -90,4 +90,8 @@ public class ShareDayData {
      */
     private BigDecimal oneYearMax;
 
+    /**
+     * 压力金额
+     */
+    private BigDecimal pressureMoney;
 }

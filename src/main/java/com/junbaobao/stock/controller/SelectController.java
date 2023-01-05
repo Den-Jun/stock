@@ -64,6 +64,9 @@ public class SelectController {
     @Resource
     ShareDayDataMapper shareDayDataMapper;
 
+    private String cookie_dj = "Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1643185552; user_status=0; historystock=000001; spversion=20130314; log=; user=MDpteF81NTgzMjk3Mzc6Ok5vbmU6NTAwOjU2ODMyOTczNzo3LDExMTExMTExMTExLDQwOzQ0LDExLDQwOzYsMSw0MDs1LDEsNDA7MSwxMDEsNDA7MiwxLDQwOzMsMSw0MDs1LDEsNDA7OCwwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMSw0MDsxMDIsMSw0MDoxNjo6OjU1ODMyOTczNzoxNjcyMjg1OTY3Ojo6MTYwODYwMzAwMDoyNjc4NDAwOjA6MTZlZTc1YmY0MjYwNWJhZDdjNDJlMGFhYTI2MDFjZWQ5OmRlZmF1bHRfNDow; userid=558329737; u_name=mx_558329737; escapename=mx_558329737; ticket=b1844b025855dfe07a6161b3599a1e20; utk=5f278ab67082b0903612ce04a823291c; v=A_68BffnEQSPO0Ug12SrNdx0Tx9FP8K5VAF2nagHasE8S5CBEM8SySSTxq57";
+    private String co = "__bid_n=18510bcab47dae07704207; FEID=v10-b4df2e5b9fd54759943fe8f9e29b6cae83cb1943; Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1670895553,1671371374; __xaf_fpstarttimer__=1671623450523; __xaf_thstime__=1671623450618; FPTOKEN=cG8A4fiKA7fagF0k2gg5+FXWbG6q0xrhQJ48Ahf4uIdpTQo9KCq0PV67MtJiL5nC7tffgUkPZ7R+Gg0/1Aj0Bx9ela2OZ5tQTt/ptQRur6Zlsv5uq3G8vio+7SVipZlUb1pKTBj5VsNUcbhVJY6ouym9yuZFpTKtL34uFQBLA+OrGU3K3nxkoZKgGnx3aLzeOvvMWEhGT6RhUKmCo2kQ86/DtfCocQc3OfhxUFma5ZNj0IDKWXo/xOlf2vZAcDLoDRNnt5I5vXtvjC1AU3MNFK40zDwU0QOyanseos7vEw3rRrRVd8poN3vadxEH5uY/zip6Ow1dBb79X56Y2f/oGVnppohGCeOP/ARFE4RIX/szu/sYvu0vk9efVkgTR+7ODOjba9FXA/O4g/fIFNAjcA==|6fKHKE57Rj/GpY+3B0am4fwyt2AqSYZ6ZUpxl6NVS+I=|10|b3765305a4bbccfa41fd9f1fb2757b29; __xaf_fptokentimer__=1671623450670; Hm_lvt_da7579fd91e2c6fa5aeb9d1620a9b333=1671623570; __utma=156575163.691551267.1671624523.1671624523.1671624523.1; __utmc=156575163; __utmz=156575163.1671624523.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); historystock=002149; spversion=20130314; log=; user_status=0; Hm_lpvt_da7579fd91e2c6fa5aeb9d1620a9b333=1672796582; Hm_lpvt_78c58f01938e4d85eaf619eae71b4ed1=1672796582; user=MDpBbHdheXNZZTo6Tm9uZTo1MDA6NTM4ODcyMDE5OjExMCwwMDAwMDAwMTAwLDQ7MTE5LDAwMDAwMDAwMTEwMDAwMCw0OzcsMTExMTExMTExMTEsNDA7NDQsMTEsNDA7NiwxLDQwOzUsMSw0MDsxLDEwMSw0MDsyLDEsNDA7MywxLDQwOzgsMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDEsNDA7MTAyLDEsNDA6MjQ6Ojo1Mjg4NzIwMTk6MTY3Mjc5NjY2NDo6OjE1OTI5MDg3NDA6NTQ5MzY6MDoxZWFkYzdhMTc4YjE2ZjI3YzdlMDczMWM3YTRhMGY3NWE6ZGVmYXVsdF80OjE%3D; userid=528872019; u_name=AlwaysYe; escapename=AlwaysYe; ticket=4ab5f9376bf0c5e08780a9a82cba652c; utk=96c33c7be31e2588071439495c2974a0; v=A0ax-eQDWeVbOw0BuSfI40utlzfNp4phXOm-xTBvMmlEM-jpmDfacSx7DtYD";
+
 
     /**
      * 26分后取值
@@ -319,6 +322,7 @@ public class SelectController {
                 //今天成交量
                 Object todayData = oneYearDateData.get(0);
                 BigDecimal totalVolume = new BigDecimal(todayData.toString().split(",")[5]);
+                BigDecimal newMoney = new BigDecimal(todayData.toString().split(",")[2]);
                 //昨天交易量
                 Object yesterdayData = oneYearDateData.get(1);
                 BigDecimal yesterdayTotalVolume = new BigDecimal(yesterdayData.toString().split(",")[5]);
@@ -353,6 +357,8 @@ public class SelectController {
                 shareDayData.setFiveDayAverageMinutes(fiveDayAverageMinutes);
                 shareDayData.setYesterdayTotalVolume(yesterdayTotalVolume);
                 shareDayData.setOneYearMax(oneYearMax);
+                shareDayData.setPressureMoney(oneYearMax.multiply(newMoney).divide(new BigDecimal(1000000), 2, RoundingMode.FLOOR));
+
                 shareDayDataMapper.updateById(shareDayData);
                 log.info(shareDayData.toString());
             } catch (Exception e) {
@@ -453,8 +459,6 @@ public class SelectController {
      */
     @GetMapping("/baoLiangOptionalAdd")
     public int baoLiangOptionalAdd() {
-        String cookie_dj = "Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1643185552; user_status=0; historystock=000001; spversion=20130314; log=; user=MDpteF81NTgzMjk3Mzc6Ok5vbmU6NTAwOjU2ODMyOTczNzo3LDExMTExMTExMTExLDQwOzQ0LDExLDQwOzYsMSw0MDs1LDEsNDA7MSwxMDEsNDA7MiwxLDQwOzMsMSw0MDs1LDEsNDA7OCwwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMSw0MDsxMDIsMSw0MDoxNjo6OjU1ODMyOTczNzoxNjcyMjg1OTY3Ojo6MTYwODYwMzAwMDoyNjc4NDAwOjA6MTZlZTc1YmY0MjYwNWJhZDdjNDJlMGFhYTI2MDFjZWQ5OmRlZmF1bHRfNDow; userid=558329737; u_name=mx_558329737; escapename=mx_558329737; ticket=b1844b025855dfe07a6161b3599a1e20; utk=5f278ab67082b0903612ce04a823291c; v=A_68BffnEQSPO0Ug12SrNdx0Tx9FP8K5VAF2nagHasE8S5CBEM8SySSTxq57";
-        String co = "__bid_n=18510bcab47dae07704207; FEID=v10-b4df2e5b9fd54759943fe8f9e29b6cae83cb1943; Hm_lvt_78c58f01938e4d85eaf619eae71b4ed1=1670895553,1671371374; __xaf_fpstarttimer__=1671623450523; __xaf_thstime__=1671623450618; FPTOKEN=cG8A4fiKA7fagF0k2gg5+FXWbG6q0xrhQJ48Ahf4uIdpTQo9KCq0PV67MtJiL5nC7tffgUkPZ7R+Gg0/1Aj0Bx9ela2OZ5tQTt/ptQRur6Zlsv5uq3G8vio+7SVipZlUb1pKTBj5VsNUcbhVJY6ouym9yuZFpTKtL34uFQBLA+OrGU3K3nxkoZKgGnx3aLzeOvvMWEhGT6RhUKmCo2kQ86/DtfCocQc3OfhxUFma5ZNj0IDKWXo/xOlf2vZAcDLoDRNnt5I5vXtvjC1AU3MNFK40zDwU0QOyanseos7vEw3rRrRVd8poN3vadxEH5uY/zip6Ow1dBb79X56Y2f/oGVnppohGCeOP/ARFE4RIX/szu/sYvu0vk9efVkgTR+7ODOjba9FXA/O4g/fIFNAjcA==|6fKHKE57Rj/GpY+3B0am4fwyt2AqSYZ6ZUpxl6NVS+I=|10|b3765305a4bbccfa41fd9f1fb2757b29; __xaf_fptokentimer__=1671623450670; Hm_lvt_da7579fd91e2c6fa5aeb9d1620a9b333=1671623570; __utma=156575163.691551267.1671624523.1671624523.1671624523.1; __utmc=156575163; __utmz=156575163.1671624523.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); historystock=002149; spversion=20130314; log=; user_status=0; Hm_lpvt_da7579fd91e2c6fa5aeb9d1620a9b333=1672796582; Hm_lpvt_78c58f01938e4d85eaf619eae71b4ed1=1672796582; user=MDpBbHdheXNZZTo6Tm9uZTo1MDA6NTM4ODcyMDE5OjExMCwwMDAwMDAwMTAwLDQ7MTE5LDAwMDAwMDAwMTEwMDAwMCw0OzcsMTExMTExMTExMTEsNDA7NDQsMTEsNDA7NiwxLDQwOzUsMSw0MDsxLDEwMSw0MDsyLDEsNDA7MywxLDQwOzgsMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDEsNDA7MTAyLDEsNDA6MjQ6Ojo1Mjg4NzIwMTk6MTY3Mjc5NjY2NDo6OjE1OTI5MDg3NDA6NTQ5MzY6MDoxZWFkYzdhMTc4YjE2ZjI3YzdlMDczMWM3YTRhMGY3NWE6ZGVmYXVsdF80OjE%3D; userid=528872019; u_name=AlwaysYe; escapename=AlwaysYe; ticket=4ab5f9376bf0c5e08780a9a82cba652c; utk=96c33c7be31e2588071439495c2974a0; v=A0ax-eQDWeVbOw0BuSfI40utlzfNp4phXOm-xTBvMmlEM-jpmDfacSx7DtYD";
         List<RatioDataVO> ratioDataListByDayStr = baoLiang1();
         int i = 0;
         for (RatioData ratioData : ratioDataListByDayStr) {
@@ -500,13 +504,11 @@ public class SelectController {
             Map<String, String> headers = new HashMap<String, String>();
             headers.put("Cookie", cookie);
             String body = HttpRequest.get(url).addHeaders(headers).execute().body();
-            if(body.contains("error")){
-                throw new Exception();
-            }
+            log.info("666666666添加自选成功：" + stockId + ";  cookie:" + cookie);
         } catch (Exception e) {
             log.error("添加自选失败：" + stockId + ";  cookie:" + cookie);
         }
-        log.info("666666666添加自选成功：" + stockId + ";  cookie:" + cookie);
+
     }
 
 
@@ -528,6 +530,20 @@ public class SelectController {
         String xianJia = todaySp[2];
         String chengJiaoLiang = todaySp[5];
         return new BigDecimal(xianJia).multiply(new BigDecimal(chengJiaoLiang)).divide(new BigDecimal("1000000"), 2, BigDecimal.ROUND_FLOOR);
+    }
+
+    /**
+     * 当日涨停复盘 将复盘标的加入自选
+     *
+     * @return
+     */
+    public void zhangTingFuPan() {
+        List<ShareDayData> yyyyMMdd = shareDayDataMapper.getShareDayData(com.junbaobao.stock.util.DateUtil.toDate(new Date(), "yyyyMMdd"));
+        for (ShareDayData shareDayData : yyyyMMdd) {
+            if (new BigDecimal("10").compareTo(shareDayData.getPressureMoney()) > 0) {
+                addStock(co, shareDayData.getCode());
+            }
+        }
     }
 
 
