@@ -123,9 +123,13 @@ public class SelectController {
             //'竞昨成交比(竞价量/昨日成交量)'
             ratioData.setBiddingYesterday(biddingVolume.divide(shareDate.getTotalVolume(), 5, RoundingMode.FLOOR));
             //'竞价比(今日竞价量/昨日竞价量)'
-            ratioData.setBidding(biddingVolume.divide(shareDate.getBiddingVolume(), 5, RoundingMode.FLOOR));
+            if (shareDate.getBiddingVolume().compareTo(new BigDecimal("0"))!=0) {
+                ratioData.setBidding(biddingVolume.divide(shareDate.getBiddingVolume(), 5, RoundingMode.FLOOR));
+            }
+            if (shareDate.getFiveDayAverageMinutes().compareTo(new BigDecimal("0"))!=0) {
+                ratioData.setBiddingMinter(biddingVolume.divide(new BigDecimal(10)).divide(shareDate.getFiveDayAverageMinutes(), 5, RoundingMode.FLOOR));
+            }
             //竞价分钟比(竞价十分钟的平均每一分钟交易量/过去五天平均每分钟交易量)'
-            ratioData.setBiddingMinter(biddingVolume.divide(new BigDecimal(10)).divide(shareDate.getFiveDayAverageMinutes(), 5, RoundingMode.FLOOR));
             //'爆量系数（竞价量/昨日分时最大量）'
             ratioData.setExplosiveQuantity(biddingVolume.divide(shareDate.getTodayMinterMax(), 5, RoundingMode.FLOOR));
             //'昨日上板系数（昨日最大分时/昨日成交量）'
@@ -504,6 +508,9 @@ public class SelectController {
             Map<String, String> headers = new HashMap<String, String>();
             headers.put("Cookie", cookie);
             String body = HttpRequest.get(url).addHeaders(headers).execute().body();
+            if (body.contains("-1")) {
+                throw new Exception();
+            }
             log.info("666666666添加自选成功：" + stockId + ";  cookie:" + cookie);
         } catch (Exception e) {
             log.error("添加自选失败：" + stockId + ";  cookie:" + cookie);
