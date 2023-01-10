@@ -17,4 +17,6 @@ public class RatioDataVO extends RatioData {
      * 涨幅
      */
     private BigDecimal increase;
+
+    private String hybk;
 }

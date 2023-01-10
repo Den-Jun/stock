@@ -14,7 +14,11 @@ import java.util.List;
 public interface RatioDataMapper extends BaseMapper<RatioData> {
 
 
-    @Select("select * from RATIO_DATA where data_time = #{dateStr} order by continuity_Day desc,pressure_Money desc ,EXPLOSIVE_QUANTITY desc")
+    @Select("select t.*,d.HYBK from RATIO_DATA t " +
+            "left join " +
+            "(select HYBK,code,DATA_TIME from SHARE_DAY_DATA where DATA_TIME=( select date_format( max(jyrq), '%Y%m%d') from jy_date where  date_format(jyrq, '%Y%m%d')< #{dateStr} and jybz = 1)) d " +
+            "on  d.`CODE` = t.code  where t.DATA_TIME = #{dateStr} " +
+            "order by t.continuity_Day desc,t.pressure_Money desc ,t.EXPLOSIVE_QUANTITY desc")
     List<RatioDataVO> getRatioDataByDateStr(@Param("dateStr") String dateStr);
 
     @Delete("delete from RATIO_DATA where data_time = #{dateStr}")

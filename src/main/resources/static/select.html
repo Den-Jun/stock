@@ -32,6 +32,8 @@
 <button type="button" id="shaixuan">筛选爆量</button>
 <button type="button" id="zhangting">涨停</button>
 <button type="button" id="zuorifangliang">昨日放量</button>
+<button type="button" id="test">二板以上</button>
+
 
 <table border="1" cellspacing="0">
     <tr>
@@ -43,6 +45,7 @@
         <th>压力金额</th>
         <th>成交金额</th>
         <th>成交比</th>
+        <th>行业</th>
         <th>竞价比(今日竞价量/昨日竞价量)</th>
         <th>竞昨成交比(竞价量/昨日成交量)</th>
         <th>爆量系数（竞价量/昨日分时最大量）</th>
@@ -76,6 +79,10 @@
     $('#zuorifangliang').click(function () {
         clearInterval(interval);
         interval = setInterval(d, 1500);
+    });
+    $('#test').click(function () {
+        clearInterval(interval);
+        interval = setInterval(e, 1500);
     });
 
     function A() {
@@ -162,41 +169,123 @@
         eachTableList(newArr);
     }
 
+    function e() {
+        $.ajax({
+            url: "http://127.0.0.1:8089/select/getRatioDataListByDayStr",
+            async: false, //实现ajax的同步请求，在没有返回值之前，同步请求将锁住浏览器，用户其它操作必须等待请求完成才可以执行。
+            //处理跨域问题
+
+            dataType: "json",
+            method: "GET",
+
+            success: function (res) {
+                list = res;
+                console.log("res:" + res);
+            }
+        });
+        console.log(list);
+
+        var newArr = [];
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].continuityDay > 1) {
+                newArr[newArr.length] = list[i];
+            }
+        }
+        eachTableList(newArr);
+    }
 
     function eachTableList(list) {
         // 展示获取过来的数据
         $('table tr#value').remove();
         $(list).each(function (i, ele) {
+
             var $trC = '<tr id="value">';
             if (ele.ban === true) {
                 $trC = '<tr id="value" bgcolor="red">';
             }
+
+            var $bidding = '<td >' + ele.bidding + '</td>';
+            if (ele.bidding > 1) {
+                $bidding = '<td  BGCOLOR="yellow">' + ele.bidding + '</td>';
+            }
+
+            var $biddingYesterday = '<td>' + ele.biddingYesterday + '</td>';
+            if (ele.biddingYesterday > 0.1) {
+                $biddingYesterday = '<td  BGCOLOR="yellow">' + ele.biddingYesterday + '</td>';
+            }
+
+            var $explosiveQuantity = '<td >' + ele.explosiveQuantity + '</td>';
+            if (ele.explosiveQuantity > 0.5) {
+                $explosiveQuantity = '<td  BGCOLOR="yellow">' + ele.explosiveQuantity + '</td>';
+            }
+
+            var $yearBidding = '<td>' + ele.yearBidding + '</td>';
+            if (ele.yearBidding > 0.03) {
+                $yearBidding = '<td class="name" BGCOLOR="yellow">' + ele.yearBidding + '</td>';
+            }
+
+            var $biddingSealed = '<td >' + ele.biddingSealed + '</td>';
+            if (ele.biddingSealed > 0.3) {
+                $biddingSealed = '<td  BGCOLOR="yellow">' + ele.biddingSealed + '</td>';
+            }
+
+            var $biddingMinter = '<td >' + ele.biddingMinter + '</td>';
+            if (ele.biddingMinter > 1) {
+                $biddingMinter = '<td  BGCOLOR="yellow">' + ele.biddingMinter + '</td>';
+            }
+
+            var $yesterdayFront = '<td>' + ele.yesterdayFront + '</td>';
+            if (ele.yesterdayFront > 1) {
+                $yesterdayFront = '<td BGCOLOR="yellow">' + ele.yesterdayFront + '</td>';
+            }
+
+
             var now = ele.nowMoney / ele.pressureMoney;
             now = Math.round(now * 100) / 100;
-            var $tr = $($trC +
-                '<td class="name">' + (i + 1) + '</td>' +
-                '<td class="name">' + ele.code + '</td>' +
-                '<td class="name">' + ele.shareName + '</td>' +
-                '<td class="name">' + ele.dataTime + '</td>' +
-                '<td class="name">' + ele.continuityDay + '</td>' +
-                '<td class="name">' + ele.pressureMoney + '亿' + '</td>' +
-                '<td class="name">' + ele.nowMoney + '亿' + '</td>' +
-                '<td class="name">' + now + '</td>' +
-                '<td class="name">' + ele.bidding + '</td>' +
-                '<td class="name">' + ele.biddingYesterday + '</td>' +
-                '<td class="name">' + ele.explosiveQuantity + '</td>' +
-                '<td class="name">' + ele.yearBidding + '</td>' +
-                '<td class="name">' + ele.biddingSealed + '</td>' +
-                '<td class="name">' + ele.biddingMinter + '</td>' +
+
+            var $pressureMoney = '<td >' + ele.pressureMoney + '亿' + '</td>';
+            if (ele.pressureMoney < 8) {
+                $pressureMoney = '<td BGCOLOR="yellow">' + ele.pressureMoney + '</td>';
+            }
+
+            var $pre =
+                '<td >' + (i + 1) + '</td>' +
+                '<td >' + ele.code + '</td>' +
+                '<td >' + ele.shareName + '</td>' +
+                '<td >' + ele.dataTime + '</td>' +
+                '<td >' + ele.continuityDay + '</td>' +
+                $pressureMoney +
+                '<td >' + ele.nowMoney + '亿' + '</td>' +
+                '<td >' + now + '</td>';
+
+            if (ele.ban === true) {
+                $pre =
+                    '<td bgcolor="red" >' + (i + 1) + '</td>' +
+                    '<td bgcolor="red">' + ele.code + '</td>' +
+                    '<td bgcolor="red">' + ele.shareName + '</td>' +
+                    '<td bgcolor="red">' + ele.dataTime + '</td>' +
+                    '<td bgcolor="red">' + ele.continuityDay + '</td>' +
+                    $pressureMoney +
+                    '<td bgcolor="red">' + ele.nowMoney + '亿' + '</td>' +
+                    '<td bgcolor="red">' + now + '</td>';
+            }
+
+            var $tr = $(
+                '<tr id="value">' +
+                $pre +
+                '<td >' + ele.hybk + '</td>' +
+                $bidding +
+                $biddingYesterday +
+                $explosiveQuantity +
+                $yearBidding +
+                $biddingSealed +
+                $biddingMinter +
                 '<td class="name">' + ele.yesterdayBidding + '</td>' +
-                '<td class="name">' + ele.yesterdayFront + '</td>' +
+                $yesterdayFront +
                 '<</tr>');
-
             $('table').append($tr);
-
         });
         console.log($('table'));
-
     }
 </script>
 </body>
